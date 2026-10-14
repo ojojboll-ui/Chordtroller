@@ -14,11 +14,20 @@ AudioWorkleten och ljudet faller tillbaka på huvudtråden.
   blir det dur+moll = dim, dur+7 = maj7 och moll+7 = m7. Ackordet ligger kvar
   när du släpper.
 - **Ackordljudet** låter så länge en ackordknapp hålls nere, som Omnichordens
-  ackorddel: Chordtrollers DRONE-figur ur `CompEngine.h`, med `CompVoice` som
-  röst — en liten orgel av tre sinusar, en sluten stämföring strax under
-  plattans mitt och grundtonen som bas. Den går förbi chorusen precis som kompet
-  gör och möter strängarna i rummet. Byter du ackord med fingret kvar stäms den
-  om utan nytt anslag. Knappen ACKORDLJUD slår av och på den.
+  ackorddel i manuellt läge: Chordtrollers DRONE-figur ur `CompEngine.h`, med
+  `CompVoice` som röst — en liten orgel av tre sinusar, en sluten stämföring
+  strax under plattans mitt och grundtonen som bas. Byter du ackord med fingret
+  kvar stäms den om utan nytt anslag.
+- **Rytmen** startas och stoppas med START. Sex figurer ur `CompEngine.h` —
+  ROCK, VAMP, MARSCH, BOSSA, SWING och VALS — spelar trummor, ackordstötar och
+  en autobas som växlar mellan grundton och kvint, på det senast tryckta
+  ackordet. Ackordet behöver inte hållas medan rytmen går. Tempot går i steg om
+  4 mellan 40 och 220 BPM, och lampan bredvid START blinkar på varje slag och
+  lyser gult på ettan.
+- **ACKORDLJUD** och **AUTOBAS** slår av ackorddelen och basen var för sig, i
+  både manuellt läge och rytmen. Med båda av spelar rytmen bara trummor.
+- Hela kompet går förbi chorusen precis som i Chordtroller och möter
+  strängarna i rummet.
 - **Strumplattan** har tretton strängar, de lägsta längst ner. Ett finger som
   sätts ner plockar strängen under sig, och ett finger som dras plockar varje
   sträng det passerar. Flera fingrar går bra.
@@ -31,7 +40,8 @@ Portat rakt av, med kommentarerna kvar:
 
 - `PluckVoice.h` — strängrösten, OMNI-klangen ur `VoiceSpec.h`
 - `Ensemble.h` — chorusen
-- `CompVoice.h` och DRONE-stämföringen ur `CompEngine.h` — ackordljudet
+- `CompVoice.h`, `DrumKit.h` och figurerna, klockan och stämföringen ur
+  `CompEngine.h` — ackordljudet, rytmen och autobasen
 - `StringSet` i `ChordRing.h` — plattans tonordning, så svepet rullar som
   originalet: C3 E3 G2 C4 E4 G3 …
 - rummet är Freeverb med samma parametrar som `juce::Reverb` har i processorn

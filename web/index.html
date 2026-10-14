@@ -69,7 +69,7 @@ body {
   grid-area: bar;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px 10px;
   min-width: 0;
   flex-wrap: wrap;
 }
@@ -101,8 +101,8 @@ body {
   color: var(--ink-dim);
   min-width: 0;
 }
-.fx { display: flex; gap: 6px; margin-left: auto; }
-.toggle, .power {
+.fx { display: flex; flex-wrap: wrap; gap: 6px; }
+.toggle, .power, .transport {
   font: 600 12px/1 var(--font-key);
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -110,7 +110,7 @@ body {
   background: var(--bezel);
   border: 1px solid var(--line);
   border-radius: 5px;
-  padding: 8px 10px;
+  padding: 8px 9px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -126,7 +126,71 @@ body {
 .power { color: var(--key-ink); background: var(--led); border-color: var(--led); }
 .power::before { background: var(--key-ink); }
 .power[hidden] { display: none !important; }
-button:focus-visible { outline: 2px solid var(--led); outline-offset: 2px; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--led); outline-offset: 2px; }
+
+/* ---------- rhythm ---------- */
+.rhythm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.transport { color: var(--ink); min-width: 5.2em; justify-content: center; }
+.transport[aria-pressed="true"] { color: var(--key-ink); background: var(--ink); border-color: var(--ink); }
+.rhythm select {
+  font: 600 12px/1 var(--font-key);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--bezel);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 7px 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.tempo {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bezel);
+  overflow: hidden;
+}
+.tempo button {
+  font: 500 15px/1 var(--font-mono);
+  color: var(--ink);
+  background: none;
+  border: 0;
+  padding: 0 9px;
+  cursor: pointer;
+}
+.tempo output {
+  font: 500 13px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--led);
+  min-width: 3ch;
+  text-align: center;
+  padding: 7px 2px;
+  border-inline: 1px solid var(--line);
+}
+.beat {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--line);
+  flex: none;
+}
+.beat.on { background: var(--ink-dim); }
+.beat.on.one { background: var(--led); box-shadow: 0 0 8px var(--led); }
+.sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 /* ---------- chord keys ---------- */
 .keys {
@@ -224,6 +288,11 @@ button:focus-visible { outline: 2px solid var(--led); outline-offset: 2px; }
   #chordName { font-size: 18px; }
 }
 
+/* Small landscape phones need the height for the keys. */
+@media (max-width: 720px) {
+  .hint { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .key.down { transform: none; }
 }
@@ -237,13 +306,32 @@ button:focus-visible { outline: 2px solid var(--led); outline-offset: 2px; }
       <span class="label">Ackord</span>
       <span id="chordName">C</span>
     </div>
-    <span class="hint">Två i samma kolumn: dur+moll&nbsp;=&nbsp;dim, dur+7&nbsp;=&nbsp;maj7, moll+7&nbsp;=&nbsp;m7</span>
+    <div class="rhythm" role="group" aria-label="Rytm">
+      <span class="beat" id="beatLed" aria-hidden="true"></span>
+      <button class="transport" id="startStop" type="button" aria-pressed="false">Start</button>
+      <label class="sr" for="pattern">Rytm</label>
+      <select id="pattern">
+        <option value="rock" selected>Rock</option>
+        <option value="vamp">Vamp</option>
+        <option value="march">Marsch</option>
+        <option value="bossa">Bossa</option>
+        <option value="swing">Swing</option>
+        <option value="waltz">Vals</option>
+      </select>
+      <div class="tempo">
+        <button type="button" id="tempoDown" aria-label="Långsammare">&minus;</button>
+        <output id="bpm" aria-label="Tempo i slag per minut">96</output>
+        <button type="button" id="tempoUp" aria-label="Snabbare">+</button>
+      </div>
+    </div>
+    <button class="power" id="power" type="button">Slå på ljudet</button>
     <div class="fx">
-      <button class="power" id="power" type="button">Slå på ljudet</button>
       <button class="toggle" id="chordToggle" type="button" aria-pressed="true">Ackordljud</button>
+      <button class="toggle" id="bassToggle" type="button" aria-pressed="true">Autobas</button>
       <button class="toggle" id="chorusToggle" type="button" aria-pressed="true">Chorus</button>
       <button class="toggle" id="reverbToggle" type="button" aria-pressed="true">Rum</button>
     </div>
+    <span class="hint">Två i samma kolumn: dur+moll&nbsp;=&nbsp;dim, dur+7&nbsp;=&nbsp;maj7, moll+7&nbsp;=&nbsp;m7</span>
   </header>
 
   <div class="keys" id="keys" role="group" aria-label="Ackordknappar"></div>
@@ -350,26 +438,29 @@ class Ensemble {
   }
 }
 
-/* The chord section's voice, from CompVoice.h: an organ, more or less. Three
-   sines at 1x, 2x and 3x, a 6 ms attack and a 130 ms release, held for as long as
-   the button is. Phase is kept on retune so a chord change under a held finger
-   does not click. */
+/* The accompaniment's voice, from CompVoice.h: an organ, more or less. Three
+   sines at 1x, 2x and 3x, a 6 ms attack and a 130 ms release. A gate of zero
+   holds until noteOff, which is what the held chord is; the rhythm's stabs give
+   it a length. Phase is kept on retune so a chord change does not click. */
 class CompVoice {
   constructor(sr, octave, twelfth) {
     this.sr = sr; this.second = octave; this.third = twelfth;
     this.atk = 1 / Math.max(1, sr * 0.006);
     this.rel = 1 / Math.max(1, sr * 0.130);
     this.env = 0; this.phase = 0; this.inc = 0; this.level = 0;
-    this.active = false; this.holding = false;
+    this.active = false; this.holding = false; this.gate = -1;
   }
-  noteOn(freq, level) {
+  noteOn(freq, level, gateSeconds) {
     this.inc = freq / this.sr; this.level = level;
+    this.gate = gateSeconds > 0 ? Math.round(gateSeconds * this.sr) : -1;
     if (!this.active) this.phase = 0;
     this.holding = true; this.active = true;
   }
+  setFrequency(freq) { this.inc = freq / this.sr; }
   noteOff() { this.holding = false; }
   process() {
     if (!this.active) return 0;
+    if (this.gate > 0 && --this.gate === 0) this.holding = false;
     if (this.holding) this.env = Math.min(1, this.env + this.atk);
     else {
       this.env -= this.rel;
@@ -379,6 +470,183 @@ class CompVoice {
     const v = Math.sin(t) + this.second * Math.sin(2 * t) + this.third * Math.sin(3 * t);
     this.phase += this.inc; if (this.phase >= 1) this.phase -= 1;
     return v * this.env * this.level;
+  }
+}
+
+/* Three drums, made rather than sampled, from DrumKit.h: a kick is a sine
+   falling off a cliff, a snare is noise with a tuned thump under it, a hat is
+   noise with the bottom taken out. */
+class DrumKit {
+  constructor(sr) {
+    this.sr = sr;
+    const dc = (sec) => Math.pow(0.001, 1 / Math.max(1, sr * sec));
+    this.kickDecay = dc(0.28); this.kickPitchDecay = dc(0.035);
+    this.snareToneDecay = dc(0.09); this.snareHissDecay = dc(0.16);
+    this.hatDecay = dc(0.045);
+    this.kickEnv = 0; this.kickPitchEnv = 0; this.kickPhase = 0;
+    this.snareToneEnv = 0; this.snareHissEnv = 0; this.snarePhase = 0; this.snareLow = 0;
+    this.hatEnv = 0; this.hatLow = 0;
+    this.rng = 0x9e3779b9 | 0;
+  }
+  trigger(piece, level) {
+    if (piece === 'kick') { this.kickEnv = level; this.kickPitchEnv = 1; }
+    else if (piece === 'snare') { this.snareToneEnv = level * 0.8; this.snareHissEnv = level; }
+    else this.hatEnv = level;
+  }
+  noise() {
+    let x = this.rng;
+    x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+    this.rng = x | 0;
+    return this.rng / 2147483648;
+  }
+  process() {
+    const F = 1e-4, TWO_PI = 2 * Math.PI;
+    let out = 0;
+    if (this.kickEnv > F) {
+      // 150 Hz down to 46 in about a thirtieth of a second. The drop is the drum.
+      this.kickPhase += (46 + 105 * this.kickPitchEnv) / this.sr;
+      if (this.kickPhase >= 1) this.kickPhase -= 1;
+      out += Math.sin(TWO_PI * this.kickPhase) * this.kickEnv;
+      this.kickEnv *= this.kickDecay; this.kickPitchEnv *= this.kickPitchDecay;
+    }
+    const n = this.noise();
+    if (this.snareHissEnv > F) {
+      this.snareLow += 0.55 * (n - this.snareLow);
+      out += (n - this.snareLow) * this.snareHissEnv * 0.45;
+      this.snareHissEnv *= this.snareHissDecay;
+    }
+    if (this.snareToneEnv > F) {
+      this.snarePhase += 190 / this.sr; if (this.snarePhase >= 1) this.snarePhase -= 1;
+      out += Math.sin(TWO_PI * this.snarePhase) * this.snareToneEnv * 0.35;
+      this.snareToneEnv *= this.snareToneDecay;
+    }
+    if (this.hatEnv > F) {
+      this.hatLow += 0.82 * (n - this.hatLow);
+      out += (n - this.hatLow) * this.hatEnv * 0.26;
+      this.hatEnv *= this.hatDecay;
+    }
+    return out;
+  }
+}
+
+/* The accompaniment, from CompEngine.h: chord, auto-bass and drums on one clock.
+   Stopped, it is the Omnichord's manual mode, a chord and a root held for as long
+   as a button is. Running, it plays one of the six rhythm figures on the last
+   chord pressed, with the bass alternating root and fifth. */
+class Comp {
+  constructor(sr) {
+    this.sr = sr;
+    this.cv = [0, 1, 2].map(() => new CompVoice(sr, 0.42, 0.18));   // octave and twelfth: an organ
+    this.bass = new CompVoice(sr, 0.30, 0.04);                      // almost pure, so it stays under
+    this.drums = new DrumKit(sr);
+    this.notes = [55, 59, 62]; this.root = 36; this.fifth = 43;
+    this.alt = false;
+    this.running = false; this.holding = false;
+    this.chordOn = true; this.bassOn = true;
+    this.pattern = 'rock'; this.bpm = 96;
+    this.step = -1; this.counter = 0; this.spb = 1;
+    this.beat = -1;
+    this.updateClock();
+  }
+
+  /* Which steps each part lands on. The grid is per figure: SWING runs on
+     triplets because a shuffle cannot be written in sixteenths, and VALS keeps
+     sixteenths but has three beats to the bar. */
+  static figure(p) {
+    const at = (...s) => s.reduce((m, x) => m | (1 << x), 0);
+    const hat16 = at(0, 2, 4, 6, 8, 10, 12, 14);
+    const F = {
+      vamp:  { bass: at(0, 8), chord: at(4, 12), kick: at(0, 8), snare: at(4, 12), hat: hat16, spb: 4, beats: 4, bg: 0.34, cg: 0.24 },
+      march: { bass: at(0, 4, 8, 12), chord: at(4, 12), kick: at(0, 4, 8, 12), snare: at(4, 12), hat: hat16, spb: 4, beats: 4, bg: 0.20, cg: 0.22 },
+      rock:  { bass: at(0, 3, 8, 11), chord: at(4, 12), kick: at(0, 3, 8, 11), snare: at(4, 12), hat: hat16, spb: 4, beats: 4, bg: 0.22, cg: 0.26 },
+      bossa: { bass: at(0, 6, 8, 14), chord: at(2, 6, 10, 14), kick: at(0, 6, 8, 14), snare: at(3, 10), hat: hat16, spb: 4, beats: 4, bg: 0.26, cg: 0.18 },
+      swing: { bass: at(0, 6), chord: at(3, 9), kick: at(0), snare: at(3, 9), hat: at(0, 2, 3, 6, 8, 9), spb: 3, beats: 4, bg: 0.28, cg: 0.20 },
+      waltz: { bass: at(0), chord: at(4, 8), kick: at(0), snare: at(4, 8), hat: at(0, 2, 4, 6, 8, 10), spb: 4, beats: 3, bg: 0.30, cg: 0.22 }
+    };
+    return F[p] || F.rock;
+  }
+
+  static hz(n) { return 440 * Math.pow(2, (n - 69) / 12); }
+
+  updateClock() {
+    const f = Comp.figure(this.pattern);
+    this.fig = f;
+    this.spb = Math.max(1, Math.round(this.sr * 60 / this.bpm / f.spb));
+  }
+
+  setChord(m) {
+    this.notes = m.chord; this.root = m.bass; this.fifth = m.fifth;
+    this.alt = false;
+    if (!this.running) { if (this.holding) this.strikeHeld(); return; }
+    // A rhythm waits for its next hit before striking again, but whatever is
+    // already sounding follows the chord at once rather than sitting on the old root.
+    for (let i = 0; i < 3; i++) if (this.cv[i].active) this.cv[i].setFrequency(Comp.hz(this.notes[i]));
+    if (this.bass.active) this.bass.setFrequency(Comp.hz(this.root));
+  }
+
+  configure(m) {
+    this.chordOn = m.chordOn; this.bassOn = m.bassOn;
+    if (m.bpm !== this.bpm) { this.bpm = Math.min(220, Math.max(40, m.bpm)); this.updateClock(); }
+    if (m.pattern !== this.pattern) {
+      this.pattern = m.pattern; this.updateClock();
+      // Changing figure mid-bar restarts the bar.
+      if (this.running) { this.step = -1; this.counter = 0; this.releaseAll(); }
+    }
+    if (m.running !== this.running) {
+      this.running = m.running;
+      this.step = -1; this.counter = 0;
+      this.releaseAll();
+      if (!this.running) this.beat = -1;
+    }
+    if (!this.running) { if (this.holding) this.strikeHeld(); else this.releaseAll(); }
+  }
+
+  setHold(on) {
+    this.holding = on;
+    if (this.running) return;
+    if (on) this.strikeHeld(); else this.releaseAll();
+  }
+
+  // Sustained sits lower than struck: a held chord is present the whole time.
+  strikeHeld() {
+    for (let i = 0; i < 3; i++) {
+      if (this.chordOn) this.cv[i].noteOn(Comp.hz(this.notes[i]), 0.15, 0);
+      else this.cv[i].noteOff();
+    }
+    if (this.bassOn) this.bass.noteOn(Comp.hz(this.root), 0.28, 0);
+    else this.bass.noteOff();
+  }
+
+  releaseAll() {
+    for (const v of this.cv) v.noteOff();
+    this.bass.noteOff();
+  }
+
+  fire(step) {
+    const f = this.fig, hit = (mask) => ((mask >> step) & 1) !== 0;
+    if (hit(f.kick)) this.drums.trigger('kick', 0.95);
+    if (hit(f.snare)) this.drums.trigger('snare', 0.75);
+    if (hit(f.hat)) this.drums.trigger('hat', step % 4 === 0 ? 0.55 : 0.34);
+    if (this.bassOn && hit(f.bass)) {
+      this.bass.noteOn(Comp.hz(this.alt ? this.fifth : this.root), 0.55, f.bg);
+      this.alt = !this.alt;
+    }
+    if (this.chordOn && hit(f.chord))
+      for (let i = 0; i < 3; i++) this.cv[i].noteOn(Comp.hz(this.notes[i]), 0.26, f.cg);
+    if (step % f.spb === 0) this.beat = step / f.spb;
+  }
+
+  process() {
+    if (this.running && --this.counter <= 0) {
+      this.counter = this.spb;
+      this.step = (this.step + 1) % (this.fig.spb * this.fig.beats);
+      this.fire(this.step);
+    }
+    let sum = this.bass.process();
+    for (let k = 0; k < 3; k++) sum += this.cv[k].process();
+    // Loud enough to drive, quiet enough to stay behind the plate.
+    sum += this.drums.process() * 0.55;
+    return sum;
   }
 }
 
@@ -445,24 +713,25 @@ class OmniDSP {
     // Four seconds to -60 dB: Chordtroller's ring with LT released.
     this.decay = Math.pow(0.001, 1 / (sr * 4));
     this.frame = [0, 0];
-    // Chord section: CompEngine's DRONE, three chord voices and a bass.
-    this.chordVoices = [0, 1, 2].map(() => new CompVoice(sr, 0.42, 0.18));
-    this.bass = new CompVoice(sr, 0.30, 0.04);
+    this.comp = new Comp(sr);
+    this.lastBeat = -1;
   }
 
   message(m) {
     if (m.type === 'chord') this.notes = m.notes;
     else if (m.type === 'pluck') this.queue.push({ s: m.string, v: m.vel, w: Math.round(m.delay * this.sr), done: false });
     else if (m.type === 'fx') { this.chorus = m.chorus; this.verb.on = m.reverb; }
-    else if (m.type === 'hold') {
-      const hz = (n) => 440 * Math.pow(2, (n - 69) / 12);
-      m.chord.forEach((n, i) => this.chordVoices[i].noteOn(hz(n), 0.15));
-      this.bass.noteOn(hz(m.bass), 0.28);
-    }
-    else if (m.type === 'release') {
-      for (const v of this.chordVoices) v.noteOff();
-      this.bass.noteOff();
-    }
+    else if (m.type === 'compChord') this.comp.setChord(m);
+    else if (m.type === 'rhythm') this.comp.configure(m);
+    else if (m.type === 'hold') this.comp.setHold(m.on);
+  }
+
+  /* The beat the rhythm last landed on, once per change, for the tempo light. */
+  takeBeat() {
+    const b = this.comp.beat;
+    if (b === this.lastBeat) return -1;
+    this.lastBeat = b;
+    return b;
   }
 
   // A ringing string takes its own note back; then a free voice; then the oldest.
@@ -493,11 +762,9 @@ class OmniDSP {
       const dry = sum * 0.07;
       if (this.chorus) this.ens.process(dry, fr);
       else { this.ens.process(dry, fr); fr[0] = fr[1] = dry; }
-      // The chord section skips the chorus, as the comp does in Chordtroller: the
+      // The accompaniment skips the chorus, as the comp does in Chordtroller: the
       // chorus would wash the bass into mush. It meets the strings at the room.
-      let comp = this.bass.process();
-      for (let k = 0; k < 3; k++) comp += this.chordVoices[k].process();
-      comp *= 0.21;
+      const comp = this.comp.process() * 0.21;
       fr[0] += comp; fr[1] += comp;
       this.verb.process(fr);
       L[i] = Math.tanh(fr[0]);
@@ -558,7 +825,8 @@ const ROWS = [{ cls: 'q0', suffix: '', name: 'dur' },
 
 let ctx = null, node = null, dsp = null, ready = false;
 const pending = [];
-const fx = { chorus: true, reverb: true, chord: true };
+const fx = { chorus: true, reverb: true, chord: true, bass: true };
+const rhythm = { running: false, pattern: 'rock', bpm: 96 };
 let current = { r: 3, quality: 'maj', notes: buildStrings(0, 'maj') };
 
 function send(m) {
@@ -567,12 +835,14 @@ function send(m) {
 }
 
 function workletSource() {
-  return [PluckVoice, Ensemble, CompVoice, Freeverb, OmniDSP].map((c) => c.toString()).join('\n') + `
+  return [PluckVoice, Ensemble, CompVoice, DrumKit, Comp, Freeverb, OmniDSP].map((c) => c.toString()).join('\n') + `
 class OmniProcessor extends AudioWorkletProcessor {
   constructor() { super(); this.dsp = new OmniDSP(sampleRate); this.port.onmessage = (e) => this.dsp.message(e.data); }
   process(inputs, outputs) {
     const o = outputs[0];
     this.dsp.process(o[0], o[1] || new Float32Array(o[0].length), o[0].length);
+    const b = this.dsp.takeBeat();
+    if (b >= 0) this.port.postMessage({ type: 'beat', beat: b });
     return true;
   }
 }
@@ -594,6 +864,7 @@ async function startAudio() {
     const url = URL.createObjectURL(new Blob([workletSource()], { type: 'application/javascript' }));
     await ctx.audioWorklet.addModule(url);
     node = new AudioWorkletNode(ctx, 'omni', { numberOfInputs: 0, outputChannelCount: [2] });
+    node.port.onmessage = (e) => { if (e.data.type === 'beat') showBeat(e.data.beat); };
   } catch (e) {
     // No worklet (or it was blocked): run the same DSP on the main thread.
     dsp = new OmniDSP(ctx.sampleRate);
@@ -601,6 +872,8 @@ async function startAudio() {
     node.onaudioprocess = (ev) => {
       const b = ev.outputBuffer;
       dsp.process(b.getChannelData(0), b.getChannelData(1), b.length);
+      const beat = dsp.takeBeat();
+      if (beat >= 0) showBeat(beat);
     };
   }
   node.connect(ctx.destination);
@@ -608,7 +881,9 @@ async function startAudio() {
   send({ type: 'chord', notes: current.notes });
   send({ type: 'fx', chorus: fx.chorus, reverb: fx.reverb });
   pending.length = 0;
-  sounding = false; updateChordSound();
+  sendCompChord();
+  sendRhythm();
+  updateChordSound();
   ctx.onstatechange = updatePower;
   updatePower();
 }
@@ -620,14 +895,51 @@ powerBtn.addEventListener('click', startAudio);
 document.addEventListener('pointerup', () => { if (!ctx || ctx.state !== 'running') startAudio(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && ctx && ctx.state !== 'running') ctx.resume(); });
 
-for (const [id, key] of [['chordToggle', 'chord'], ['chorusToggle', 'chorus'], ['reverbToggle', 'reverb']]) {
+for (const [id, key] of [['chordToggle', 'chord'], ['bassToggle', 'bass'], ['chorusToggle', 'chorus'], ['reverbToggle', 'reverb']]) {
   const b = document.getElementById(id);
   b.addEventListener('click', () => {
     fx[key] = !fx[key];
     b.setAttribute('aria-pressed', String(fx[key]));
-    if (key === 'chord') updateChordSound();
+    if (key === 'chord' || key === 'bass') sendRhythm();
     else send({ type: 'fx', chorus: fx.chorus, reverb: fx.reverb });
   });
+}
+
+/* ---------- rhythm ---------- */
+
+function sendRhythm() {
+  send({ type: 'rhythm', running: rhythm.running, pattern: rhythm.pattern, bpm: rhythm.bpm,
+         chordOn: fx.chord, bassOn: fx.bass });
+}
+
+const startBtn = document.getElementById('startStop');
+const patternSel = document.getElementById('pattern');
+const bpmOut = document.getElementById('bpm');
+const beatLed = document.getElementById('beatLed');
+
+startBtn.addEventListener('click', () => {
+  rhythm.running = !rhythm.running;
+  startBtn.setAttribute('aria-pressed', String(rhythm.running));
+  startBtn.textContent = rhythm.running ? 'Stopp' : 'Start';
+  sendRhythm();
+  if (!rhythm.running) beatLed.classList.remove('on', 'one');
+});
+patternSel.addEventListener('change', () => { rhythm.pattern = patternSel.value; sendRhythm(); });
+function nudgeTempo(d) {
+  rhythm.bpm = Math.min(220, Math.max(40, rhythm.bpm + d));
+  bpmOut.textContent = rhythm.bpm;
+  sendRhythm();
+}
+document.getElementById('tempoDown').addEventListener('click', () => nudgeTempo(-4));
+document.getElementById('tempoUp').addEventListener('click', () => nudgeTempo(4));
+
+let beatTimer = 0;
+function showBeat(b) {
+  if (!rhythm.running) return;
+  beatLed.classList.add('on');
+  beatLed.classList.toggle('one', b === 0);
+  clearTimeout(beatTimer);
+  beatTimer = setTimeout(() => beatLed.classList.remove('on', 'one'), 90);
 }
 
 /* =============================================================================
@@ -688,30 +1000,30 @@ function selectChord(r) {
   chordNameEl.textContent = ROOTS[r][0] + QUALITIES[quality].suffix;
   for (const b of keyEls) b.classList.toggle('lit', +b.dataset.r === r && rows.has(+b.dataset.q));
   renderPlate();
+  sendCompChord();
   updateChordSound();
 }
 
 /* CompEngine's voicing: close root position just under the middle of the plate,
-   with sevenths dropping the fifth exactly as the plate does. */
+   with sevenths dropping the fifth exactly as the plate does. The bass sits in
+   the second octave, where nothing the plate does can reach. */
 function chordVoicing(pc, quality) {
   const q = QUALITIES[quality];
   const base = 55 + ((((pc - 55) % 12) + 12) % 12);
-  return { chord: [base, base + q.third, base + q.colour], bass: 36 + pc };
+  return { chord: [base, base + q.third, base + q.colour], bass: 36 + pc, fifth: 36 + (pc + 7) % 12 };
 }
 
-/* The chord section sounds while a chord button is held, the way the OM-84's
-   does, and only while the switch is on. Changing chord under a held finger
-   retunes it without a new attack. */
-let sounding = false;
+function sendCompChord() {
+  send({ type: 'compChord', ...chordVoicing(ROOTS[current.r][1], current.quality) });
+}
+
+/* Stopped, the chord section sounds while a chord button is held, the way the
+   OM-84's does. Running, the rhythm plays the last chord pressed and the hold
+   does nothing. ACKORDLJUD and AUTOBAS switch each half off in both modes. */
+let holding = false;
 function updateChordSound() {
-  const want = fx.chord && held.size > 0;
-  if (want) {
-    send({ type: 'hold', ...chordVoicing(ROOTS[current.r][1], current.quality) });
-    sounding = true;
-  } else if (sounding) {
-    send({ type: 'release' });
-    sounding = false;
-  }
+  const want = held.size > 0;
+  if (want !== holding) { holding = want; send({ type: 'hold', on: want }); }
 }
 
 keysEl.addEventListener('pointerdown', (e) => {
