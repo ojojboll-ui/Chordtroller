@@ -237,9 +237,10 @@ button:focus-visible { outline: 2px solid var(--led); outline-offset: 2px; }
       <span class="label">Ackord</span>
       <span id="chordName">C</span>
     </div>
-    <span class="hint">Håll två i samma kolumn: dur+moll = dim, dur+7 = maj7, moll+7 = m7</span>
+    <span class="hint">Två i samma kolumn: dur+moll&nbsp;=&nbsp;dim, dur+7&nbsp;=&nbsp;maj7, moll+7&nbsp;=&nbsp;m7</span>
     <div class="fx">
       <button class="power" id="power" type="button">Slå på ljudet</button>
+      <button class="toggle" id="chordToggle" type="button" aria-pressed="true">Ackordljud</button>
       <button class="toggle" id="chorusToggle" type="button" aria-pressed="true">Chorus</button>
       <button class="toggle" id="reverbToggle" type="button" aria-pressed="true">Rum</button>
     </div>
@@ -349,6 +350,38 @@ class Ensemble {
   }
 }
 
+/* The chord section's voice, from CompVoice.h: an organ, more or less. Three
+   sines at 1x, 2x and 3x, a 6 ms attack and a 130 ms release, held for as long as
+   the button is. Phase is kept on retune so a chord change under a held finger
+   does not click. */
+class CompVoice {
+  constructor(sr, octave, twelfth) {
+    this.sr = sr; this.second = octave; this.third = twelfth;
+    this.atk = 1 / Math.max(1, sr * 0.006);
+    this.rel = 1 / Math.max(1, sr * 0.130);
+    this.env = 0; this.phase = 0; this.inc = 0; this.level = 0;
+    this.active = false; this.holding = false;
+  }
+  noteOn(freq, level) {
+    this.inc = freq / this.sr; this.level = level;
+    if (!this.active) this.phase = 0;
+    this.holding = true; this.active = true;
+  }
+  noteOff() { this.holding = false; }
+  process() {
+    if (!this.active) return 0;
+    if (this.holding) this.env = Math.min(1, this.env + this.atk);
+    else {
+      this.env -= this.rel;
+      if (this.env <= 0) { this.env = 0; this.active = false; return 0; }
+    }
+    const t = 2 * Math.PI * this.phase;
+    const v = Math.sin(t) + this.second * Math.sin(2 * t) + this.third * Math.sin(3 * t);
+    this.phase += this.inc; if (this.phase >= 1) this.phase -= 1;
+    return v * this.env * this.level;
+  }
+}
+
 /* Freeverb as juce::Reverb runs it, with Chordtroller's room:
    size 0.62, damping 0.42, wet 0.30, dry 1.0, width 1.0. */
 class Freeverb {
@@ -412,12 +445,24 @@ class OmniDSP {
     // Four seconds to -60 dB: Chordtroller's ring with LT released.
     this.decay = Math.pow(0.001, 1 / (sr * 4));
     this.frame = [0, 0];
+    // Chord section: CompEngine's DRONE, three chord voices and a bass.
+    this.chordVoices = [0, 1, 2].map(() => new CompVoice(sr, 0.42, 0.18));
+    this.bass = new CompVoice(sr, 0.30, 0.04);
   }
 
   message(m) {
     if (m.type === 'chord') this.notes = m.notes;
     else if (m.type === 'pluck') this.queue.push({ s: m.string, v: m.vel, w: Math.round(m.delay * this.sr), done: false });
     else if (m.type === 'fx') { this.chorus = m.chorus; this.verb.on = m.reverb; }
+    else if (m.type === 'hold') {
+      const hz = (n) => 440 * Math.pow(2, (n - 69) / 12);
+      m.chord.forEach((n, i) => this.chordVoices[i].noteOn(hz(n), 0.15));
+      this.bass.noteOn(hz(m.bass), 0.28);
+    }
+    else if (m.type === 'release') {
+      for (const v of this.chordVoices) v.noteOff();
+      this.bass.noteOff();
+    }
   }
 
   // A ringing string takes its own note back; then a free voice; then the oldest.
@@ -448,6 +493,12 @@ class OmniDSP {
       const dry = sum * 0.07;
       if (this.chorus) this.ens.process(dry, fr);
       else { this.ens.process(dry, fr); fr[0] = fr[1] = dry; }
+      // The chord section skips the chorus, as the comp does in Chordtroller: the
+      // chorus would wash the bass into mush. It meets the strings at the room.
+      let comp = this.bass.process();
+      for (let k = 0; k < 3; k++) comp += this.chordVoices[k].process();
+      comp *= 0.21;
+      fr[0] += comp; fr[1] += comp;
       this.verb.process(fr);
       L[i] = Math.tanh(fr[0]);
       R[i] = Math.tanh(fr[1]);
@@ -507,7 +558,7 @@ const ROWS = [{ cls: 'q0', suffix: '', name: 'dur' },
 
 let ctx = null, node = null, dsp = null, ready = false;
 const pending = [];
-const fx = { chorus: true, reverb: true };
+const fx = { chorus: true, reverb: true, chord: true };
 let current = { r: 3, quality: 'maj', notes: buildStrings(0, 'maj') };
 
 function send(m) {
@@ -516,7 +567,7 @@ function send(m) {
 }
 
 function workletSource() {
-  return [PluckVoice, Ensemble, Freeverb, OmniDSP].map((c) => c.toString()).join('\n') + `
+  return [PluckVoice, Ensemble, CompVoice, Freeverb, OmniDSP].map((c) => c.toString()).join('\n') + `
 class OmniProcessor extends AudioWorkletProcessor {
   constructor() { super(); this.dsp = new OmniDSP(sampleRate); this.port.onmessage = (e) => this.dsp.message(e.data); }
   process(inputs, outputs) {
@@ -557,6 +608,7 @@ async function startAudio() {
   send({ type: 'chord', notes: current.notes });
   send({ type: 'fx', chorus: fx.chorus, reverb: fx.reverb });
   pending.length = 0;
+  sounding = false; updateChordSound();
   ctx.onstatechange = updatePower;
   updatePower();
 }
@@ -568,12 +620,13 @@ powerBtn.addEventListener('click', startAudio);
 document.addEventListener('pointerup', () => { if (!ctx || ctx.state !== 'running') startAudio(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && ctx && ctx.state !== 'running') ctx.resume(); });
 
-for (const [id, key] of [['chorusToggle', 'chorus'], ['reverbToggle', 'reverb']]) {
+for (const [id, key] of [['chordToggle', 'chord'], ['chorusToggle', 'chorus'], ['reverbToggle', 'reverb']]) {
   const b = document.getElementById(id);
   b.addEventListener('click', () => {
     fx[key] = !fx[key];
     b.setAttribute('aria-pressed', String(fx[key]));
-    send({ type: 'fx', chorus: fx.chorus, reverb: fx.reverb });
+    if (key === 'chord') updateChordSound();
+    else send({ type: 'fx', chorus: fx.chorus, reverb: fx.reverb });
   });
 }
 
@@ -635,6 +688,30 @@ function selectChord(r) {
   chordNameEl.textContent = ROOTS[r][0] + QUALITIES[quality].suffix;
   for (const b of keyEls) b.classList.toggle('lit', +b.dataset.r === r && rows.has(+b.dataset.q));
   renderPlate();
+  updateChordSound();
+}
+
+/* CompEngine's voicing: close root position just under the middle of the plate,
+   with sevenths dropping the fifth exactly as the plate does. */
+function chordVoicing(pc, quality) {
+  const q = QUALITIES[quality];
+  const base = 55 + ((((pc - 55) % 12) + 12) % 12);
+  return { chord: [base, base + q.third, base + q.colour], bass: 36 + pc };
+}
+
+/* The chord section sounds while a chord button is held, the way the OM-84's
+   does, and only while the switch is on. Changing chord under a held finger
+   retunes it without a new attack. */
+let sounding = false;
+function updateChordSound() {
+  const want = fx.chord && held.size > 0;
+  if (want) {
+    send({ type: 'hold', ...chordVoicing(ROOTS[current.r][1], current.quality) });
+    sounding = true;
+  } else if (sounding) {
+    send({ type: 'release' });
+    sounding = false;
+  }
 }
 
 keysEl.addEventListener('pointerdown', (e) => {
@@ -650,6 +727,7 @@ function releaseKey(e) {
   if (!b) return;
   held.delete(e.pointerId);
   b.classList.remove('down');
+  updateChordSound();
 }
 document.addEventListener('pointerup', releaseKey);
 document.addEventListener('pointercancel', releaseKey);

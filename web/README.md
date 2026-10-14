@@ -13,6 +13,12 @@ AudioWorkleten och ljudet faller tillbaka på huvudtråden.
   Eb till G#, och raderna dur, moll och 7. Håller du två knappar i samma kolumn
   blir det dur+moll = dim, dur+7 = maj7 och moll+7 = m7. Ackordet ligger kvar
   när du släpper.
+- **Ackordljudet** låter så länge en ackordknapp hålls nere, som Omnichordens
+  ackorddel: Chordtrollers DRONE-figur ur `CompEngine.h`, med `CompVoice` som
+  röst — en liten orgel av tre sinusar, en sluten stämföring strax under
+  plattans mitt och grundtonen som bas. Den går förbi chorusen precis som kompet
+  gör och möter strängarna i rummet. Byter du ackord med fingret kvar stäms den
+  om utan nytt anslag. Knappen ACKORDLJUD slår av och på den.
 - **Strumplattan** har tretton strängar, de lägsta längst ner. Ett finger som
   sätts ner plockar strängen under sig, och ett finger som dras plockar varje
   sträng det passerar. Flera fingrar går bra.
@@ -25,6 +31,7 @@ Portat rakt av, med kommentarerna kvar:
 
 - `PluckVoice.h` — strängrösten, OMNI-klangen ur `VoiceSpec.h`
 - `Ensemble.h` — chorusen
+- `CompVoice.h` och DRONE-stämföringen ur `CompEngine.h` — ackordljudet
 - `StringSet` i `ChordRing.h` — plattans tonordning, så svepet rullar som
   originalet: C3 E3 G2 C4 E4 G3 …
 - rummet är Freeverb med samma parametrar som `juce::Reverb` har i processorn
