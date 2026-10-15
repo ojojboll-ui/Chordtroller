@@ -339,6 +339,13 @@ kontrollerar att en släppt trigger ger exakt noll, att båda
 kontrollerna stiger hela vägen — en som ger mindre ju hårdare du trycker är
 trasig — och att ingen når självsvängning av sig själv.
 
+`tools/enginetests/phrasetest.cpp` (`build.bat phrasetest`) spelar varje stil och
+variation, fritt och låst till en värd, och kontrollerar att frasen slår varje
+gång figuren kommer runt. Det fångade att PULS FJÄRDEDEL och STRUM SNABB bara
+slog en gång: de är ett steg långa, så steget inom figuren är alltid 0, och
+klockan jämförde just det steget och såg aldrig något nytt. Nu räknar klockan
+steg från taktens början.
+
 ## 303
 
 Fjärde instrumentet är en stegsekvenser med 16 steg och en röst formad som en

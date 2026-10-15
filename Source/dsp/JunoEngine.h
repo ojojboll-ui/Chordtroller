@@ -155,7 +155,7 @@ public:
 
             // Jumped into the middle of a step: do not play it late.
             if (playing)
-                lastStep = currentStepIndex();
+                lastStep = absoluteStep();
         }
     }
 
@@ -480,7 +480,7 @@ private:
         else only changes what lands on the next step — the beat is kept. */
     void changeMode (PhraseMode before, PhraseMode after) noexcept
     {
-        lastStep = currentStepIndex();
+        lastStep = absoluteStep();
 
         if (before == PhraseMode::hold && after != PhraseMode::hold)
             releaseAll();
@@ -496,11 +496,13 @@ private:
         releaseAll();
     }
 
-    int currentStepIndex() const noexcept
+    /** Steps counted from the start of the beat, not within the figure. A
+        figure one step long — FJARDEDEL, STRUM SNABB — sits on step 0 for ever,
+        so comparing the step within the figure saw nothing new after the first
+        hit and the phrase played once. */
+    int absoluteStep() const noexcept
     {
-        const auto& v = variation();
-        const double position = std::fmod (beatPosition, (double) v.beats);
-        return (int) (position * v.stepsPerBeat);
+        return (int) (beatPosition * variation().stepsPerBeat);
     }
 
     int samplesPerStep (const PhraseVariation& v) const noexcept
@@ -515,12 +517,14 @@ private:
         if (v.mode == PhraseMode::hold)
             return;
 
-        const int step = currentStepIndex();
+        const int absolute = absoluteStep();
 
-        if (step == lastStep)
+        if (absolute == lastStep)
             return;
 
-        lastStep = step;
+        lastStep = absolute;
+
+        const int step = absolute % (v.stepsPerBeat * v.beats);
 
         if (((v.hits >> step) & 1u) != 0u)
             fire (v, step);
