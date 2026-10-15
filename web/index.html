@@ -1228,25 +1228,28 @@ class JunoEngine {
   }
   /* Leaving a held pad lets it go; arriving at one strikes it. The beat is kept. */
   changeMode(before, after) {
-    this.lastStep = this.stepIndex();
+    this.lastStep = this.absoluteStep();
     if (before === 'hold' && after !== 'hold') this.releaseAll();
     if (after === 'hold' && before !== 'hold') this.strikeHeld();
   }
   stop() { this.playing = false; this.strum.length = 0; this.releaseAll(); this.beat = -1; }
   allOff() { this.hold = false; this.stop(); }
 
-  stepIndex() {
-    const v = this.variation(this.style);
-    return Math.floor((this.beatPos % v.beats) * v.spb);
+  /* Steps counted from the start of the phrase, not within the figure. A figure
+     one step long (FJÄRDEDEL, STRUM SNABB) is on step 0 for ever, so comparing
+     the step within the figure saw nothing new after the first hit. */
+  absoluteStep() {
+    return Math.floor(this.beatPos * this.variation(this.style).spb);
   }
   samplesPerStep(v) { return Math.max(1, Math.floor(this.sr * 60 / (this.bpm * v.spb))); }
 
   tick() {
     const v = this.variation(this.style);
     if (v.mode === 'hold') return;
-    const step = this.stepIndex();
-    if (step === this.lastStep) return;
-    this.lastStep = step;
+    const abs = this.absoluteStep();
+    if (abs === this.lastStep) return;
+    this.lastStep = abs;
+    const step = abs % (v.spb * v.beats);
     if (((v.hits >>> step) & 1) !== 0) this.fire(v, step);
   }
 
