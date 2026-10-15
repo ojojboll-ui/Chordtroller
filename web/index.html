@@ -75,8 +75,9 @@ body {
 }
 .readout {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 10px;
+  gap: 4px 10px;
   background: var(--bezel);
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -126,7 +127,110 @@ body {
 .power { color: var(--key-ink); background: var(--led); border-color: var(--led); }
 .power::before { background: var(--key-ink); }
 .power[hidden] { display: none !important; }
-button:focus-visible, select:focus-visible { outline: 2px solid var(--led); outline-offset: 2px; }
+button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px solid var(--led); outline-offset: 2px; }
+
+/* ---------- instrument and readout extras ---------- */
+.sel {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239a9186' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+.sel.inst {
+  color: var(--key-ink);
+  background-color: var(--key-major);
+  border-color: var(--key-major);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23221e1a' stroke-width='1.5'/%3E%3C/svg%3E");
+}
+.readout .sub {
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: .06em;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.readout .sub:empty { display: none; }
+
+/* ---------- Juno phrase plate ---------- */
+.phrases {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(8, minmax(0, 1fr));
+  background: var(--plate);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  touch-action: none;
+  cursor: pointer;
+}
+.prow {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--plate-line);
+  min-height: 0;
+}
+.prow:first-child { border-top: 0; }
+.prow .pname {
+  position: absolute;
+  top: 4px; left: 8px;
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: .08em;
+  color: var(--ink);
+  pointer-events: none;
+  z-index: 1;
+}
+.pcell {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 2px 4px;
+  border-left: 1px dashed var(--plate-line);
+  font: 400 9px/1 var(--font-mono);
+  color: var(--ink-dim);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.pcell:first-child { border-left: 0; }
+.prow.playing { background: color-mix(in srgb, var(--led) 10%, transparent); }
+.pcell.on { background: color-mix(in srgb, var(--led) 55%, transparent); color: var(--key-ink); }
+.pcell.on.held { background: color-mix(in srgb, var(--led) 28%, transparent); color: var(--ink); }
+
+/* ---------- filter faders ---------- */
+.filters { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.fader {
+  position: relative;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bezel);
+  overflow: hidden;
+  touch-action: none;
+  cursor: ew-resize;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+.fader .fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 60%;
+  background: color-mix(in srgb, var(--led) 32%, transparent);
+  border-right: 2px solid var(--led);
+  pointer-events: none;
+}
+.fader .flabel, .fader .fval {
+  position: relative;
+  font: 600 11px/1 var(--font-key);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  pointer-events: none;
+}
+.fader .fval { font: 500 12px/1 var(--font-mono); color: var(--led); font-variant-numeric: tabular-nums; }
+.fader:focus-visible { outline: 2px solid var(--led); outline-offset: 2px; }
 
 /* ---------- rhythm ---------- */
 .rhythm {
@@ -138,15 +242,15 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--led); outl
 }
 .transport { color: var(--ink); min-width: 5.2em; justify-content: center; }
 .transport[aria-pressed="true"] { color: var(--key-ink); background: var(--ink); border-color: var(--ink); }
-.rhythm select {
+.sel {
   font: 600 12px/1 var(--font-key);
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--ink);
-  background: var(--bezel);
+  background-color: var(--bezel);
   border: 1px solid var(--line);
   border-radius: 5px;
-  padding: 7px 8px;
+  padding: 7px 24px 7px 8px;
   -webkit-appearance: none;
   appearance: none;
   cursor: pointer;
@@ -232,9 +336,21 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--led); outl
   box-shadow: 0 0 6px var(--led);
 }
 
+/* ---------- right-hand column ---------- */
+.side {
+  grid-area: plate;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  min-width: 0;
+}
+[data-inst="juno"] .omni-only, [data-inst="omni"] .juno-only { display: none !important; }
+
 /* ---------- strumplate ---------- */
 .plate {
-  grid-area: plate;
+  flex: 1 1 auto;
+  min-height: 0;
   position: relative;
   background:
     linear-gradient(90deg, rgb(255 255 255 / .03), transparent 30%, transparent 70%, rgb(255 255 255 / .03)),
@@ -286,6 +402,14 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--led); outl
   }
   .hint { display: none; }
   #chordName { font-size: 18px; }
+  /* Tall, narrow cells: the variation names stand on end. */
+  .pcell {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    align-items: center;
+    justify-content: flex-start;   /* the bottom of the cell, once turned */
+    padding: 6px 0 18px;
+  }
 }
 
 /* Small landscape phones need the height for the keys. */
@@ -302,15 +426,21 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--led); outl
 
 <div id="app">
   <header class="bar">
+    <label class="sr" for="instrument">Instrument</label>
+    <select id="instrument" class="sel inst">
+      <option value="omni" selected>Omni</option>
+      <option value="juno">Juno</option>
+    </select>
     <div class="readout" aria-live="polite">
       <span class="label">Ackord</span>
       <span id="chordName">C</span>
+      <span id="subName" class="sub"></span>
     </div>
     <div class="rhythm" role="group" aria-label="Rytm">
       <span class="beat" id="beatLed" aria-hidden="true"></span>
-      <button class="transport" id="startStop" type="button" aria-pressed="false">Start</button>
+      <button class="transport omni-only" id="startStop" type="button" aria-pressed="false">Start</button>
       <label class="sr" for="pattern">Rytm</label>
-      <select id="pattern">
+      <select id="pattern" class="sel omni-only">
         <option value="rock" selected>Rock</option>
         <option value="vamp">Vamp</option>
         <option value="march">Marsch</option>
@@ -325,18 +455,52 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--led); outl
       </div>
     </div>
     <button class="power" id="power" type="button">Slå på ljudet</button>
-    <div class="fx">
+    <div class="fx omni-only">
+      <label class="sr" for="voice">Ljud</label>
+      <select id="voice" class="sel">
+        <option value="0" selected>Omni</option>
+        <option value="1">Harpa</option>
+        <option value="2">Vibrafon</option>
+        <option value="3">Gitarr</option>
+      </select>
       <button class="toggle" id="chordToggle" type="button" aria-pressed="true">Ackordljud</button>
       <button class="toggle" id="bassToggle" type="button" aria-pressed="true">Autobas</button>
       <button class="toggle" id="chorusToggle" type="button" aria-pressed="true">Chorus</button>
       <button class="toggle" id="reverbToggle" type="button" aria-pressed="true">Rum</button>
+    </div>
+    <div class="fx juno-only">
+      <label class="sr" for="genre">Genre</label>
+      <select id="genre" class="sel"></select>
+      <label class="sr" for="patch">Ljud</label>
+      <select id="patch" class="sel"></select>
+      <label class="sr" for="junoChorus">Chorus</label>
+      <select id="junoChorus" class="sel">
+        <option value="0">Chorus av</option>
+        <option value="1" selected>Chorus I</option>
+        <option value="2">Chorus II</option>
+        <option value="3">Chorus I+II</option>
+      </select>
+      <button class="toggle" id="junoBassToggle" type="button" aria-pressed="true">Bas</button>
+      <button class="toggle" id="extToggle" type="button" aria-pressed="false">Utökad</button>
+      <button class="toggle" id="holdToggle" type="button" aria-pressed="false">Håll</button>
     </div>
     <span class="hint">Två i samma kolumn: dur+moll&nbsp;=&nbsp;dim, dur+7&nbsp;=&nbsp;maj7, moll+7&nbsp;=&nbsp;m7</span>
   </header>
 
   <div class="keys" id="keys" role="group" aria-label="Ackordknappar"></div>
 
-  <div class="plate" id="plate" role="application" aria-label="Strumplatta, dra fingret över strängarna"></div>
+  <div class="side">
+    <div class="plate omni-only" id="plate" role="application" aria-label="Strumplatta, dra fingret över strängarna"></div>
+    <div class="phrases juno-only" id="phrases" role="application" aria-label="Frasplatta: håll på en stil för att spela den, sidled väljer variation"></div>
+    <div class="filters juno-only">
+      <div class="fader" id="cutoffFader" role="slider" tabindex="0" aria-label="Cutoff" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60">
+        <span class="fill"></span><span class="flabel">Cutoff</span><span class="fval">60</span>
+      </div>
+      <div class="fader" id="resFader" role="slider" tabindex="0" aria-label="Resonans" aria-valuemin="0" aria-valuemax="100" aria-valuenow="15">
+        <span class="fill"></span><span class="flabel">Resonans</span><span class="fval">15</span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -353,7 +517,7 @@ class PluckVoice {
     this.env = 0; this.lp = 0;
     this.p1 = 0; this.p2 = 0.37; this.i1 = 0; this.i2 = 0;
     this.target = 1; this.atk = 0.01; this.decay = 0.999;
-    this.g = 0.5; this.width = 0.35;
+    this.g = 0.5; this.width = 0.35; this.wave = 'pulse';
     this.string = -1; this.stamp = 0;
   }
 
@@ -369,7 +533,7 @@ class PluckVoice {
     this.decay = decay;
     const cutoff = Math.min(14000, Math.max(800, freq * spec.filter));
     this.g = 1 - Math.exp(-2 * Math.PI * cutoff / this.sr);
-    this.width = spec.width;
+    this.width = spec.width; this.wave = spec.wave;
     this.string = string; this.stamp = stamp;
     this.active = true;
   }
@@ -382,6 +546,8 @@ class PluckVoice {
   }
 
   osc(p, inc) {
+    if (this.wave === 'sine') return Math.sin(2 * Math.PI * p);
+    if (this.wave === 'saw') return (2 * p - 1) - PluckVoice.blep(p, inc);
     const w = this.width;
     let v = p < w ? 1 : -1;
     v += PluckVoice.blep(p, inc);
@@ -695,6 +861,488 @@ class Freeverb {
   }
 }
 
+/* =============================================================================
+   Juno — ported from Source/dsp/JunoVoice.h, JunoEngine.h, JunoPhrases.h,
+   TempoDelay.h and Source/music/JunoChords.h. MIDI out is left behind; the rest
+   is the same instrument.
+   ============================================================================= */
+
+/* One Juno voice: a DCO (saw, pulse, a square an octave down, a little noise)
+   into a zero-delay-feedback four-pole ladder, one envelope shared between filter
+   and amplifier. That sharing is why a Juno pluck brightens and dies in one gesture. */
+class JunoVoice {
+  constructor(sr) {
+    this.sr = sr; this.patch = null;
+    this.phase = 0; this.subPhase = 0; this.inc = 0;
+    this.env = 0; this.vel = 1;
+    this.atk = 0.01; this.decayC = 0.999; this.relC = 0.999;
+    this.hpfC = 0.001; this.hpLow = 0;
+    this.s1 = 0; this.s2 = 0; this.s3 = 0; this.s4 = 0;
+    this.stage = 0;   // 0 idle, 1 attack, 2 decay, 3 sustain, 4 release
+    this.active = false; this.gateOn = false;
+    this.note = -1; this.gate = -1; this.stamp = 0;
+    this.rng = 0x2545f491 | 0;
+  }
+  coef(sec) { return Math.pow(0.001, 1 / Math.max(1, this.sr * sec)); }
+  setPatch(p) {
+    this.patch = p;
+    this.atk = 1 / Math.max(1, this.sr * p.attack);
+    this.decayC = this.coef(p.decay);
+    this.relC = this.coef(p.release);
+    this.hpfC = 1 - Math.exp(-2 * Math.PI * (20 * Math.pow(2, p.hpf * 5.3)) / this.sr);
+  }
+  noteOn(note, vel, gateLen, order) {
+    // The oscillators keep running through a retrigger; resetting them clicks.
+    if (!this.active) { this.phase = 0; this.subPhase = 0; }
+    this.note = note; this.vel = vel;
+    this.gate = gateLen > 0 ? gateLen : -1;
+    this.inc = 440 * Math.pow(2, (note - 69) / 12) / this.sr;
+    this.stage = 1; this.active = true; this.gateOn = true; this.stamp = order;
+  }
+  noteOff() { if (!this.gateOn) return; this.gateOn = false; this.stage = 4; }
+  static blep(t, dt) {
+    if (dt <= 0) return 0;
+    if (t < dt) { t /= dt; return t + t - t * t - 1; }
+    if (t > 1 - dt) { t = (t - 1) / dt; return t * t + t + t + 1; }
+    return 0;
+  }
+  static softClip(x) { x = Math.min(3, Math.max(-3, x)); return x * (27 + x * x) / (27 + 9 * x * x); }
+  noise() {
+    let x = this.rng; x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+    this.rng = x | 0; return this.rng / 2147483648;
+  }
+  envelope() {
+    const p = this.patch;
+    switch (this.stage) {
+      case 1: this.env += this.atk; if (this.env >= 1) { this.env = 1; this.stage = 2; } break;
+      case 2:
+        this.env = p.sustain + (this.env - p.sustain) * this.decayC;
+        if (Math.abs(this.env - p.sustain) < 1e-3) this.stage = 3;
+        break;
+      case 3:
+        this.env = p.sustain;
+        // A sustain of zero is a pluck: over even with the gate held.
+        if (this.env <= 1e-4) { this.active = false; this.stage = 0; }
+        break;
+      case 4:
+        this.env *= this.relC;
+        if (this.env < 1e-4) { this.env = 0; this.active = false; this.stage = 0; }
+        break;
+    }
+  }
+  process(lfo, cutoff, res, envScale) {
+    if (!this.active || !this.patch) return 0;
+    if (this.gate > 0 && --this.gate === 0) this.noteOff();
+    this.envelope();
+    if (!this.active) return 0;
+    const p = this.patch, B = JunoVoice.blep, dt = this.inc, sr = this.sr;
+    const wrap = (x) => (x >= 1 ? x - 1 : x);
+    const width = Math.min(0.95, Math.max(0.05, p.pulseWidth + lfo * p.pwmDepth * 0.4));
+    const saw = (2 * this.phase - 1) - B(this.phase, dt);
+    let pulse = this.phase < width ? 1 : -1;
+    pulse += B(this.phase, dt);
+    pulse -= B(wrap(this.phase + 1 - width), dt);
+    let sub = this.subPhase < 0.5 ? 1 : -1;
+    sub += B(this.subPhase, dt * 0.5);
+    sub -= B(wrap(this.subPhase + 0.5), dt * 0.5);
+    const n = this.noise();
+    const mixTotal = Math.max(1, p.saw + p.pulse + p.sub + p.noise);
+    let x = (saw * p.saw + pulse * p.pulse + sub * p.sub + n * p.noise) / mixTotal;
+    this.phase += dt; if (this.phase >= 1) this.phase -= 1;
+    this.subPhase += dt * 0.5; if (this.subPhase >= 1) this.subPhase -= 1;
+    // The Juno's own HPF, a gentle one-pole that thins the bottom.
+    this.hpLow += this.hpfC * (x - this.hpLow);
+    x -= this.hpLow;
+    // Ten octaves across the slider; envelope and key follow in the same units.
+    const pos = Math.min(1, Math.max(0, cutoff + p.envAmount * this.env * envScale
+                                          + p.keyTrack * (this.note - 60) / 120));
+    const hz = Math.min(20 * Math.pow(2, pos * 10), 0.45 * sr);
+    const g = Math.tan(Math.PI * hz / sr), G = g / (1 + g);
+    const k = Math.min(1, Math.max(0, res)) * 3.85;
+    const S = (G * G * G * this.s1 + G * G * this.s2 + G * this.s3 + this.s4) / (1 + g);
+    const u = JunoVoice.softClip((x - k * S) / (1 + k * G * G * G * G));
+    let v = (u - this.s1) * G; const y1 = v + this.s1; this.s1 = y1 + v;
+    v = (y1 - this.s2) * G;    const y2 = v + this.s2; this.s2 = y2 + v;
+    v = (y2 - this.s3) * G;    const y3 = v + this.s3; this.s3 = y3 + v;
+    v = (y3 - this.s4) * G;    const y4 = v + this.s4; this.s4 = y4 + v;
+    // A ladder loses passband as resonance rises; give some of it back.
+    return y4 * (1 + k * 0.5) * this.env * this.vel * p.level;
+  }
+}
+
+/* The J-6's delay: ping-pong, locked to tempo, darker every time round. */
+class TempoDelay {
+  constructor(sr) {
+    this.sr = sr;
+    this.L = new Float32Array(Math.floor(sr * 2.5) + 4);
+    this.R = new Float32Array(this.L.length);
+    this.w = 0; this.lowL = 0; this.lowR = 0;
+    this.target = sr * 0.5; this.current = this.target;
+    this.send = 0; this.fb = 0.3;
+  }
+  /* Division 0 eighth, 1 dotted eighth, 2 quarter. */
+  setTiming(bpm, division) {
+    const beats = [0.5, 0.75, 1.0][Math.min(2, Math.max(0, division))];
+    this.target = Math.min(60 / Math.max(40, bpm) * beats * this.sr, this.L.length - 4);
+  }
+  setAmount(send, fb) { this.send = Math.min(1, Math.max(0, send)); this.fb = Math.min(0.85, Math.max(0, fb)); }
+  read(line, d) {
+    const size = line.length;
+    let pos = this.w - d;
+    while (pos < 0) pos += size;
+    const a = pos | 0, b = (a + 1) % size, fr = pos - a;
+    return line[a] * (1 - fr) + line[b] * fr;
+  }
+  process(io) {
+    // A tempo change bends the repeats for a moment instead of clicking.
+    this.current += (this.target - this.current) * 0.0005;
+    const wl = this.read(this.L, this.current), wr = this.read(this.R, this.current);
+    this.lowL += 0.35 * (wl - this.lowL);
+    this.lowR += 0.35 * (wr - this.lowR);
+    const input = (io[0] + io[1]) * 0.5 * this.send;
+    // Ping-pong: each echo lands on the opposite side from the last.
+    this.L[this.w] = input + this.lowR * this.fb;
+    this.R[this.w] = this.lowL * this.fb;
+    if (++this.w >= this.L.length) this.w = 0;
+    io[0] += wl; io[1] += wr;
+  }
+}
+
+/* The chord generator: a chord from the keys, a way of playing it from the
+   plate, six Juno voices to play it on. Voice leading picks the inversion that
+   moves least; every phrase shares one beat grid, so changing style mid-bar
+   keeps the beat and changes only what lands on it. */
+class JunoEngine {
+  constructor(sr) {
+    this.sr = sr;
+    this.voices = [];
+    for (let i = 0; i < 6; i++) this.voices.push(new JunoVoice(sr));
+    this.patchIndex = 0; this.setPatch(0);
+    this.bpm = 96; this.bps = this.bpm / 60 / sr; this.beatPos = 0;
+    this.cutoff = 0; this.res = 0; this.lfoPhase = 0;
+    this.root = 0; this.func = 0; this.ext = false; this.genre = 0;
+    this.voiced = []; this.bassOn = false; this.octave = 0;
+    this.playing = false; this.hold = false; this.strumUp = true;
+    this.style = 0; this.lastStyle = 0; this.lastStep = -1;
+    this.arpIndex = -1; this.arpDir = 1; this.contour = 0;
+    this.intensity = 0.8;
+    this.variations = [0, 0, 0, 0, 0, 0, 0, 0];
+    this.order = 0;
+    this.strum = [];
+    this.beat = -1;
+    this.leadVoicing();
+  }
+
+  /* name, saw, pulse, sub, noise, pw, pwm, lfo, env, key, hpf, A, D, S, R, level, delay send, feedback, division */
+  static patches() {
+    if (!JunoEngine._patches) {
+      const row = (name, saw, pulse, sub, noise, pulseWidth, pwmDepth, lfoRate, envAmount, keyTrack, hpf,
+                   attack, decay, sustain, release, level, delaySend, delayFeedback, delayDivision) =>
+        ({ name, saw, pulse, sub, noise, pulseWidth, pwmDepth, lfoRate, envAmount, keyTrack, hpf,
+           attack, decay, sustain, release, level, delaySend, delayFeedback, delayDivision });
+      JunoEngine._patches = [
+        row('PAD',     0.80, 0.45, 0.30, 0, 0.50, 0.35, 0.45, 0.22, 0.30, 0.05, 0.55,  1.20, 0.80, 1.40, 0.55, 0.18, 0.35, 1),
+        row('STRÅKAR', 1.00, 0.00, 0.15, 0, 0.50, 0.00, 0.40, 0.10, 0.30, 0.20, 0.35,  1.00, 0.90, 1.00, 0.50, 0.10, 0.30, 2),
+        row('STÖT',    0.90, 0.25, 0.40, 0, 0.50, 0.10, 0.80, 0.60, 0.40, 0.05, 0.003, 0.25, 0.30, 0.18, 0.70, 0.30, 0.42, 1),
+        row('PLOCK',   0.20, 0.80, 0.20, 0, 0.30, 0.10, 0.60, 0.70, 0.40, 0.08, 0.002, 0.35, 0.00, 0.30, 0.75, 0.26, 0.45, 0),
+        row('BRASS',   1.00, 0.00, 0.20, 0, 0.50, 0.00, 0.50, 0.55, 0.35, 0.05, 0.06,  0.50, 0.70, 0.35, 0.60, 0.12, 0.30, 2)
+      ];
+    }
+    return JunoEngine._patches;
+  }
+
+  static genres() { return ['POP', 'SYNTHWAVE', 'HOUSE', 'NEO SOUL', 'GOSPEL', 'LOFI']; }
+
+  /* [genre][function][plain, extended] as [suffix, intervals]. Functions are
+     0 major, 1 minor, 2 dominant, 3 half-diminished. Read across a row to hear a genre. */
+  static shape(genre, func, ext) {
+    if (!JunoEngine._shapes) JunoEngine._shapes = [
+      [ [['add9', [0, 4, 7, 14]], ['maj9', [0, 4, 7, 11, 14]]],          // POP
+        [['m7', [0, 3, 7, 10]], ['m9', [0, 3, 7, 10, 14]]],
+        [['add9', [0, 4, 7, 14]], ['9sus4', [0, 5, 7, 10, 14]]],
+        [['m7b5', [0, 3, 6, 10]], ['m7b5', [0, 3, 6, 10, 12]]] ],
+      [ [['sus2', [0, 2, 7, 12]], ['add9', [0, 4, 7, 12, 14]]],          // SYNTHWAVE
+        [['madd9', [0, 3, 7, 14]], ['m9', [0, 3, 7, 10, 14]]],
+        [['sus2', [0, 2, 7, 12]], ['7sus4', [0, 5, 7, 10, 12]]],
+        [['m7b5', [0, 3, 6, 10]], ['m7b5', [0, 3, 6, 10, 12]]] ],
+      [ [['maj7', [0, 4, 7, 11]], ['maj9', [0, 4, 7, 11, 14]]],          // HOUSE
+        [['m7', [0, 3, 7, 10]], ['m11', [0, 3, 7, 10, 17]]],
+        [['7sus4', [0, 5, 7, 10]], ['9sus4', [0, 5, 7, 10, 14]]],
+        [['m7b5', [0, 3, 6, 10]], ['m7b5', [0, 3, 6, 10, 12]]] ],
+      [ [['maj9', [0, 4, 7, 11, 14]], ['maj9#11', [0, 4, 11, 14, 18]]],  // NEO SOUL
+        [['m9', [0, 3, 7, 10, 14]], ['m11', [0, 3, 10, 14, 17]]],
+        [['13', [0, 4, 10, 14, 21]], ['7#9', [0, 4, 7, 10, 15]]],
+        [['m9b5', [0, 3, 6, 10, 14]], ['m11b5', [0, 3, 6, 10, 17]]] ],
+      [ [['maj7', [0, 4, 7, 11]], ['6/9', [0, 4, 7, 9, 14]]],            // GOSPEL
+        [['m7', [0, 3, 7, 10]], ['m9', [0, 3, 7, 10, 14]]],
+        [['9sus4', [0, 5, 7, 10, 14]], ['7#9', [0, 4, 7, 10, 15]]],
+        [['m7b5', [0, 3, 6, 10]], ['dim7', [0, 3, 6, 9]]] ],
+      [ [['maj7', [0, 4, 7, 11]], ['maj9', [0, 4, 7, 11, 14]]],          // LOFI
+        [['m9', [0, 3, 7, 10, 14]], ['m11', [0, 3, 10, 14, 17]]],
+        [['9', [0, 4, 7, 10, 14]], ['13', [0, 4, 10, 14, 21]]],
+        [['m7b5', [0, 3, 6, 10]], ['m9b5', [0, 3, 6, 10, 14]]] ]
+    ];
+    const g = ((genre % 6) + 6) % 6;
+    return JunoEngine._shapes[g][func][ext ? 1 : 0];
+  }
+
+  /* Eight styles, four variations each, organised by mechanism as the J-6 does:
+     [name, mode, stepsPerBeat, beats, hits (-1 every step), gate in steps,
+      arp direction, strum spread ms, melody contour, alternate strum]. */
+  static styles() {
+    if (!JunoEngine._styles) {
+      const at = (...s) => s.reduce((m, x) => (m | (1 << x)) >>> 0, 0);
+      const E = 0xffffffff;
+      const V = (name, mode, spb, beats, hits, gate, dir = 0, strumMs = 0, contour = null, alternate = false) =>
+        ({ name, mode, spb, beats, hits, gate, dir, strumMs, contour, alternate });
+      JunoEngine._styles = [
+        { name: 'PULS', v: [
+          V('HEL', 'hold', 1, 4, 0, 0), V('HALV', 'pulse', 1, 2, at(0), 1.85),
+          V('FJÄRDEDEL', 'pulse', 1, 1, at(0), 0.85), V('ÅTTONDEL', 'pulse', 2, 1, at(0, 1), 0.80) ] },
+        { name: 'ARP 1/8', v: [
+          V('UPP', 'arp', 2, 1, E, 0.9, 1), V('NED', 'arp', 2, 1, E, 0.9, -1),
+          V('UPP/NED', 'arp', 2, 1, E, 0.9, 0), V('TRIOL', 'arp', 3, 1, E, 0.9, 1) ] },
+        { name: 'ARP 1/16', v: [
+          V('UPP', 'arp', 4, 1, E, 0.85, 1), V('NED', 'arp', 4, 1, E, 0.85, -1),
+          V('UPP/NED', 'arp', 4, 1, E, 0.85, 0), V('TRIOL', 'arp', 6, 1, E, 0.85, 1) ] },
+        { name: 'RYTM', v: [
+          V('o_o_', 'pulse', 4, 1, at(0, 2), 0.90), V('__o_', 'pulse', 4, 1, at(2), 0.80),
+          V('oo_o', 'pulse', 4, 1, at(0, 1, 3), 0.70), V('o__o', 'pulse', 4, 1, at(0, 3), 0.90) ] },
+        { name: 'SYNKOP', v: [
+          V('3-3-2', 'pulse', 4, 2, at(0, 3, 6), 1.20), V('3-2-3', 'pulse', 4, 2, at(0, 3, 5), 1.00),
+          V('KNUFF', 'pulse', 4, 2, at(1, 3, 6), 0.90), V('STUDS', 'pulse', 4, 2, at(0, 2, 5, 7), 0.80) ] },
+        { name: 'STRUM', v: [
+          V('ENKEL', 'strum', 1, 4, at(0), 3.80, 0, 28), V('RYTMISK', 'strum', 2, 2, at(0, 3), 1.40, 0, 22, null, true),
+          V('SNABB', 'strum', 1, 1, at(0), 0.90, 0, 12), V('LÅNGSAM', 'strum', 1, 4, at(0), 3.80, 0, 70) ] },
+        { name: 'GATE', v: [
+          V('1/16', 'pulse', 4, 1, E, 0.45), V('HACKA', 'pulse', 4, 2, at(0, 1, 3, 4, 5, 7), 0.45),
+          V('1/32', 'pulse', 8, 1, E, 0.45), V('PUNKT', 'pulse', 4, 4, at(0, 3, 6, 9, 12), 0.50) ] },
+        { name: 'FRAS', v: [
+          V('ENKEL', 'melody', 2, 4, E, 0.90, 0, 0, [0, 1, 2, 3, 4, 3, 2, 1]),
+          V('RYTMISK', 'melody', 4, 2, at(0, 3, 6), 1.30, 0, 0, [3, 2, 4, 3, 2, 4, 3, 2]),
+          V('STIGANDE', 'melody', 4, 1, E, 0.90, 0, 0, [0, 2, 1, 3, 2, 4, 3, 5]),
+          V('TOPP', 'melody', 2, 2, at(0, 1, 3), 1.20, 0, 0, [4, 3, 2, 4, 3, 2, 4, 3]) ] }
+      ];
+    }
+    return JunoEngine._styles;
+  }
+
+  /* Where the two filter controls land: cutoff linear, resonance tapered so the
+     range sits where the finger is, and short of self-oscillation at the top. */
+  static sweep(c, r) {
+    return { cutoff: Math.min(1, Math.max(0, c)), res: 0.95 * Math.pow(Math.min(1, Math.max(0, r)), 0.6) };
+  }
+
+  get patch() { return JunoEngine.patches()[this.patchIndex]; }
+  setPatch(i) {
+    this.patchIndex = ((i % 5) + 5) % 5;
+    for (const v of this.voices) v.setPatch(JunoEngine.patches()[this.patchIndex]);
+  }
+  setTempo(bpm) { this.bpm = Math.min(220, Math.max(40, bpm)); this.bps = this.bpm / 60 / this.sr; }
+  setFilter(c, r) { const s = JunoEngine.sweep(c, r); this.cutoff = s.cutoff; this.res = s.res; }
+
+  setChord(root, func, ext, genre) {
+    root = ((root % 12) + 12) % 12;
+    if (root === this.root && func === this.func && ext === this.ext && genre === this.genre && this.voiced.length) return;
+    this.root = root; this.func = func; this.ext = ext; this.genre = genre;
+    this.leadVoicing();
+    if (this.playing) this.followChord();
+  }
+  setBass(on) { if (on === this.bassOn) return; this.bassOn = on; if (this.playing) this.followChord(); }
+
+  /* Every inversion, lifted only from the bottom, with its lowest note between
+     D3 and D4. The one that moves least from the last chord wins. */
+  leadVoicing() {
+    const iv = JunoEngine.shape(this.genre, this.func, this.ext)[1];
+    let best = null, bestCost = 1e9;
+    for (let inv = 0; inv < iv.length; inv++) {
+      const c = iv.map((x, i) => x + (i < inv ? 12 : 0)).sort((a, b) => a - b);
+      let root = 36 + this.root;
+      while (root + c[0] < 50) root += 12;
+      while (root + c[0] >= 62) root -= 12;
+      for (let i = 0; i < c.length; i++) c[i] += root;
+      const cost = this.voicingCost(c);
+      if (cost < bestCost) { bestCost = cost; best = c; }
+    }
+    this.voiced = best;
+  }
+  voicingCost(c) {
+    const mean = (a) => a.reduce((s, x) => s + x, 0) / a.length;
+    const centre = mean(c);
+    if (!this.voiced.length) return Math.abs(centre - 64);
+    let movement = 0;
+    for (const n of c) {
+      let nearest = 128;
+      for (const p of this.voiced) nearest = Math.min(nearest, Math.abs(n - p));
+      movement += nearest;
+    }
+    // Drift of the whole shape counts double: small moves that walk upwards are still a walk.
+    return movement + 2 * Math.abs(centre - mean(this.voiced));
+  }
+  bassNote() {
+    let n = 36 + this.root + 12 * this.octave;
+    while (n > 52) n -= 12;
+    while (n < 24) n += 12;
+    return n;
+  }
+  targets() {
+    const t = this.voiced.map((n) => n + 12 * this.octave);
+    if (this.bassOn) t.push(this.bassNote());
+    return t;
+  }
+
+  /* Notes that belong to the new chord keep sounding; the rest let go. A held
+     pad then fills in what is new, so a progression on it is legato. */
+  followChord() {
+    const t = this.targets();
+    for (const v of this.voices) if (v.gateOn && !t.includes(v.note)) v.noteOff();
+    if (this.playing && this.modeOf(this.style) === 'hold') this.strikeHeld();
+  }
+
+  variation(style) { return JunoEngine.styles()[style].v[this.variations[style]]; }
+  modeOf(style) { return this.variation(style).mode; }
+
+  /* The plate: which style and variation the finger is on, or -1 for lifted. */
+  setPhrase(style, variation) {
+    if (style < 0) { if (this.playing && !this.hold) this.stop(); return; }
+    this.lastStyle = style;
+    if (!this.playing) { this.variations[style] = variation; this.start(style); return; }
+    if (style !== this.style) {
+      const before = this.modeOf(this.style);
+      this.variations[style] = variation;
+      this.style = style;
+      this.changeMode(before, this.modeOf(style));
+    } else if (variation !== this.variations[style]) {
+      const before = this.modeOf(style);
+      this.variations[style] = variation;
+      this.changeMode(before, this.modeOf(style));
+    }
+  }
+  setHold(on) { this.hold = on; }
+
+  start(style) {
+    this.playing = true; this.style = style;
+    this.beatPos = 0; this.lastStep = -1;
+    this.arpIndex = -1; this.arpDir = 1; this.contour = 0; this.strumUp = true;
+    if (this.modeOf(style) === 'hold') this.strikeHeld();
+  }
+  /* Leaving a held pad lets it go; arriving at one strikes it. The beat is kept. */
+  changeMode(before, after) {
+    this.lastStep = this.stepIndex();
+    if (before === 'hold' && after !== 'hold') this.releaseAll();
+    if (after === 'hold' && before !== 'hold') this.strikeHeld();
+  }
+  stop() { this.playing = false; this.strum.length = 0; this.releaseAll(); this.beat = -1; }
+  allOff() { this.hold = false; this.stop(); }
+
+  stepIndex() {
+    const v = this.variation(this.style);
+    return Math.floor((this.beatPos % v.beats) * v.spb);
+  }
+  samplesPerStep(v) { return Math.max(1, Math.floor(this.sr * 60 / (this.bpm * v.spb))); }
+
+  tick() {
+    const v = this.variation(this.style);
+    if (v.mode === 'hold') return;
+    const step = this.stepIndex();
+    if (step === this.lastStep) return;
+    this.lastStep = step;
+    if (((v.hits >>> step) & 1) !== 0) this.fire(v, step);
+  }
+
+  fire(v, step) {
+    // The downbeat of every beat is struck a little harder: that is the groove.
+    const onBeat = step % v.spb === 0;
+    const vel = (0.35 + 0.65 * this.intensity) * (onBeat ? 1 : 0.82);
+    const sps = this.samplesPerStep(v);
+    const gate = Math.max(1, Math.floor(v.gate * sps));
+    if (this.bassOn && onBeat) this.play(this.bassNote(), vel, Math.max(gate, sps * v.spb));
+    switch (v.mode) {
+      case 'pulse': for (const n of this.voiced) this.play(n + 12 * this.octave, vel, gate); break;
+      case 'arp': this.play(this.nextArp(v.dir), vel, gate); break;
+      case 'melody': this.play(this.toneAt(v.contour[this.contour++ % 8]), vel, gate); break;
+      case 'strum': this.scheduleStrum(v, vel, gate); break;
+    }
+  }
+
+  /* The voicing and the same an octave up, walked in the arp's direction. */
+  nextArp(dir) {
+    const n = this.voiced.length * 2;
+    if (dir > 0) this.arpIndex = (this.arpIndex + 1) % n;
+    else if (dir < 0) this.arpIndex = this.arpIndex <= 0 ? n - 1 : this.arpIndex - 1;
+    else {
+      this.arpIndex += this.arpDir;
+      if (this.arpIndex >= n) { this.arpIndex = n - 2; this.arpDir = -1; }
+      if (this.arpIndex < 0) { this.arpIndex = Math.min(1, n - 1); this.arpDir = 1; }
+    }
+    return this.toneAt(this.arpIndex);
+  }
+  toneAt(index) {
+    const c = this.voiced.length, i = Math.max(0, index);
+    return this.voiced[i % c] + 12 * Math.floor(i / c) + 12 * this.octave;
+  }
+
+  scheduleStrum(v, vel, gate) {
+    const spacing = Math.floor(v.strumMs * 0.001 * this.sr);
+    const c = this.voiced.length;
+    for (let i = 0; i < c; i++) {
+      const which = this.strumUp ? i : c - 1 - i;
+      // Later notes in a strum are a little softer and shorter, as under a hand.
+      this.strum.push({ note: this.voiced[which] + 12 * this.octave, vel: vel * (1 - 0.05 * i),
+                        gate: Math.max(1, gate - i * spacing), delay: i * spacing });
+    }
+    if (v.alternate) this.strumUp = !this.strumUp;
+  }
+  tickStrum() {
+    for (let i = 0; i < this.strum.length;) {
+      const s = this.strum[i];
+      if (s.delay-- > 0) { i++; continue; }
+      this.play(s.note, s.vel, s.gate);
+      this.strum[i] = this.strum[this.strum.length - 1];
+      this.strum.pop();
+    }
+  }
+
+  strikeHeld() {
+    const vel = 0.35 + 0.65 * this.intensity;
+    for (const n of this.targets())
+      if (!this.voices.some((v) => v.gateOn && v.note === n)) this.play(n, vel, 0);
+  }
+  releaseAll() { for (const v of this.voices) if (v.gateOn) v.noteOff(); }
+
+  /* The same note takes its voice back; then a free voice; then the oldest
+     released one; only then something still held. */
+  play(note, vel, gate) {
+    note = Math.min(127, Math.max(0, note));
+    let chosen = this.voices.find((v) => v.active && v.note === note);
+    if (!chosen) chosen = this.voices.find((v) => !v.active);
+    for (let pass = 0; pass < 2 && !chosen; pass++) {
+      let oldest = Infinity;
+      for (const v of this.voices) {
+        if ((pass === 0 && v.gateOn) || v.stamp >= oldest) continue;
+        oldest = v.stamp; chosen = v;
+      }
+    }
+    if (chosen) chosen.noteOn(note, vel, gate, ++this.order);
+  }
+
+  process() {
+    this.lfoPhase += this.patch.lfoRate / this.sr;
+    if (this.lfoPhase >= 1) this.lfoPhase -= 1;
+    const lfo = Math.sin(2 * Math.PI * this.lfoPhase);
+    if (this.playing) {
+      this.beatPos += this.bps;
+      this.tick();
+      this.beat = Math.floor(this.beatPos);
+    }
+    if (this.strum.length) this.tickStrum();
+    const envScale = 0.4 + 0.6 * this.intensity;
+    let sum = 0;
+    for (let i = 0; i < 6; i++) sum += this.voices[i].process(lfo, this.cutoff, this.res, envScale);
+    return sum * 0.24;
+  }
+}
+
 /* The instrument: a 48-voice pool, the plate's notes, and a queue of plucks
    placed on the sample they were scheduled for. */
 class OmniDSP {
@@ -708,13 +1356,50 @@ class OmniDSP {
     this.queue = [];
     this.stamp = 0;
     this.chorus = true;
-    // OMNI from VoiceSpec.h: pulse 0.35, filter x7, 2 ms attack, 3 cents apart.
-    this.spec = { width: 0.35, filter: 7, attack: 0.002, detune: 3 };
-    // Four seconds to -60 dB: Chordtroller's ring with LT released.
-    this.decay = Math.pow(0.001, 1 / (sr * 4));
+    this.setVoice(0);
     this.frame = [0, 0];
     this.comp = new Comp(sr);
     this.lastBeat = -1;
+    // The Juno, with its own chorus setting and the J-6's delay.
+    this.inst = 'omni';
+    this.juno = new JunoEngine(sr);
+    this.ensJ = new Ensemble(sr);
+    this.delay = new TempoDelay(sr);
+    this.jframe = [0, 0];
+  }
+
+  /* The four timbres from VoiceSpec.h, as data. The decay scale multiplies the
+     four-second ring Chordtroller has with LT released, so vibes ring longest and
+     the guitar shortest. */
+  static voiceSpecs() {
+    return [
+      { name: 'OMNI',     wave: 'pulse', width: 0.35, filter: 7,  decayScale: 1.00, attack: 0.0020, detune: 3 },
+      { name: 'HARPA',    wave: 'saw',   width: 0,    filter: 5,  decayScale: 1.15, attack: 0.0030, detune: 2 },
+      { name: 'VIBRAFON', wave: 'sine',  width: 0,    filter: 12, decayScale: 1.60, attack: 0.0040, detune: 1.5 },
+      { name: 'GITARR',   wave: 'pulse', width: 0.20, filter: 9,  decayScale: 0.70, attack: 0.0015, detune: 4 }
+    ];
+  }
+
+  setVoice(i) {
+    this.spec = OmniDSP.voiceSpecs()[i] || OmniDSP.voiceSpecs()[0];
+    this.decay = Math.pow(0.001, 1 / (this.sr * 4 * this.spec.decayScale));
+    // Notes already ringing take the new length too.
+    for (const v of this.voices) if (v.active) v.decay = this.decay;
+  }
+
+  setJuno(m) {
+    const j = this.juno;
+    if (m.patch !== j.patchIndex) j.setPatch(m.patch);
+    j.setFilter(m.cutoff, m.resonance);
+    j.setBass(m.bass);
+    j.setHold(m.hold);
+    j.setTempo(m.bpm);
+    // Chorus I and II are two speeds of one bucket brigade; I+II is the widest.
+    this.ensJ.rate = [0.50, 0.52, 0.83, 1.20][m.chorus];
+    this.ensJ.mix = [0.00, 0.50, 0.50, 0.58][m.chorus];
+    const p = j.patch;
+    this.delay.setTiming(j.bpm, p.delayDivision);
+    this.delay.setAmount(p.delaySend, p.delayFeedback);
   }
 
   message(m) {
@@ -724,11 +1409,16 @@ class OmniDSP {
     else if (m.type === 'compChord') this.comp.setChord(m);
     else if (m.type === 'rhythm') this.comp.configure(m);
     else if (m.type === 'hold') this.comp.setHold(m.on);
+    else if (m.type === 'voice') this.setVoice(m.index);
+    else if (m.type === 'instrument') { this.inst = m.name; if (m.name !== 'juno') this.juno.allOff(); }
+    else if (m.type === 'junoChord') this.juno.setChord(m.root, m.func, m.ext, m.genre);
+    else if (m.type === 'junoParams') this.setJuno(m);
+    else if (m.type === 'phrase') this.juno.setPhrase(m.style, m.variation);
   }
 
   /* The beat the rhythm last landed on, once per change, for the tempo light. */
   takeBeat() {
-    const b = this.comp.beat;
+    const b = this.inst === 'juno' ? this.juno.beat : this.comp.beat;
     if (b === this.lastBeat) return -1;
     this.lastBeat = b;
     return b;
@@ -766,6 +1456,12 @@ class OmniDSP {
       // chorus would wash the bass into mush. It meets the strings at the room.
       const comp = this.comp.process() * 0.21;
       fr[0] += comp; fr[1] += comp;
+      // Juno: voices, then its chorus, then the delay, then the shared room,
+      // the J-6's signal flow.
+      const jf = this.jframe;
+      this.ensJ.process(this.juno.process() * 0.9, jf);
+      this.delay.process(jf);
+      fr[0] += jf[0]; fr[1] += jf[1];
       this.verb.process(fr);
       L[i] = Math.tanh(fr[0]);
       R[i] = Math.tanh(fr[1]);
@@ -827,6 +1523,9 @@ let ctx = null, node = null, dsp = null, ready = false;
 const pending = [];
 const fx = { chorus: true, reverb: true, chord: true, bass: true };
 const rhythm = { running: false, pattern: 'rock', bpm: 96 };
+let inst = 'omni';
+const junoState = { genre: 0, patch: 0, chorus: 1, bass: true, ext: false, hold: false, cutoff: 0.6, resonance: 0.15 };
+let phrase = null;   // { style, variation } under the finger, or held
 let current = { r: 3, quality: 'maj', notes: buildStrings(0, 'maj') };
 
 function send(m) {
@@ -835,7 +1534,7 @@ function send(m) {
 }
 
 function workletSource() {
-  return [PluckVoice, Ensemble, CompVoice, DrumKit, Comp, Freeverb, OmniDSP].map((c) => c.toString()).join('\n') + `
+  return [PluckVoice, Ensemble, CompVoice, DrumKit, Comp, Freeverb, JunoVoice, TempoDelay, JunoEngine, OmniDSP].map((c) => c.toString()).join('\n') + `
 class OmniProcessor extends AudioWorkletProcessor {
   constructor() { super(); this.dsp = new OmniDSP(sampleRate); this.port.onmessage = (e) => this.dsp.message(e.data); }
   process(inputs, outputs) {
@@ -883,6 +1582,10 @@ async function startAudio() {
   pending.length = 0;
   sendCompChord();
   sendRhythm();
+  send({ type: 'voice', index: +document.getElementById('voice').value });
+  send({ type: 'instrument', name: inst });
+  sendJunoParams();
+  sendJunoChord();
   updateChordSound();
   ctx.onstatechange = updatePower;
   updatePower();
@@ -925,19 +1628,103 @@ startBtn.addEventListener('click', () => {
   if (!rhythm.running) beatLed.classList.remove('on', 'one');
 });
 patternSel.addEventListener('change', () => { rhythm.pattern = patternSel.value; sendRhythm(); });
+document.getElementById('voice').addEventListener('change', (e) => send({ type: 'voice', index: +e.target.value }));
+
+/* ---------- instrument ---------- */
+
+const instSel = document.getElementById('instrument');
+function setInstrument(name) {
+  inst = name;
+  document.body.dataset.inst = name;
+  if (name === 'juno' && rhythm.running) startBtn.click();   // the Omni's rhythm stops
+  if (name !== 'juno') { phraseFingers.clear(); phrase = null; renderPhrases(); }
+  send({ type: 'instrument', name });
+  if (name === 'juno') { sendJunoParams(); sendJunoChord(); }
+  beatLed.classList.remove('on', 'one');
+  updateChordSound();
+  renderReadout();
+}
+instSel.addEventListener('change', () => setInstrument(instSel.value));
+
+/* ---------- Juno controls ---------- */
+
+function sendJunoParams() {
+  send({ type: 'junoParams', patch: junoState.patch, cutoff: junoState.cutoff, resonance: junoState.resonance,
+         chorus: junoState.chorus, bass: junoState.bass, hold: junoState.hold, bpm: rhythm.bpm });
+}
+
+const genreSel = document.getElementById('genre');
+JunoEngine.genres().forEach((g, i) => genreSel.add(new Option(g.charAt(0) + g.slice(1).toLowerCase(), i)));
+genreSel.addEventListener('change', () => { junoState.genre = +genreSel.value; sendJunoChord(); renderReadout(); });
+
+const patchSel = document.getElementById('patch');
+JunoEngine.patches().forEach((p, i) => patchSel.add(new Option(p.name.charAt(0) + p.name.slice(1).toLowerCase(), i)));
+patchSel.addEventListener('change', () => { junoState.patch = +patchSel.value; sendJunoParams(); });
+
+document.getElementById('junoChorus').addEventListener('change', (e) => { junoState.chorus = +e.target.value; sendJunoParams(); });
+
+for (const [id, key] of [['junoBassToggle', 'bass'], ['extToggle', 'ext'], ['holdToggle', 'hold']]) {
+  const b = document.getElementById(id);
+  b.addEventListener('click', () => {
+    junoState[key] = !junoState[key];
+    b.setAttribute('aria-pressed', String(junoState[key]));
+    if (key === 'ext') { sendJunoChord(); renderReadout(); return; }
+    sendJunoParams();
+    // Letting go of HÅLL with no finger on the plate stops the phrase.
+    if (key === 'hold' && !junoState.hold && phraseFingers.size === 0) sendPhrase(null);
+  });
+}
+
+/* A fader is a strip: the finger's position along it is the value. */
+function makeFader(id, key) {
+  const el = document.getElementById(id);
+  const fill = el.querySelector('.fill'), val = el.querySelector('.fval');
+  const show = () => {
+    const pct = Math.round(junoState[key] * 100);
+    fill.style.width = pct + '%';
+    val.textContent = pct;
+    el.setAttribute('aria-valuenow', String(pct));
+  };
+  const setFrom = (x) => {
+    const r = el.getBoundingClientRect();
+    junoState[key] = Math.min(1, Math.max(0, (x - r.left) / r.width));
+    show(); sendJunoParams();
+  };
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    el.dataset.drag = e.pointerId;
+    setFrom(e.clientX);
+  });
+  el.addEventListener('pointermove', (e) => { if (el.dataset.drag == e.pointerId) setFrom(e.clientX); });
+  const end = () => { delete el.dataset.drag; };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('keydown', (e) => {
+    const d = { ArrowRight: 0.02, ArrowUp: 0.02, ArrowLeft: -0.02, ArrowDown: -0.02 }[e.key];
+    if (d === undefined) return;
+    e.preventDefault();
+    junoState[key] = Math.min(1, Math.max(0, junoState[key] + d));
+    show(); sendJunoParams();
+  });
+  show();
+}
+makeFader('cutoffFader', 'cutoff');
+makeFader('resFader', 'resonance');
 function nudgeTempo(d) {
   rhythm.bpm = Math.min(220, Math.max(40, rhythm.bpm + d));
   bpmOut.textContent = rhythm.bpm;
   sendRhythm();
+  sendJunoParams();
 }
 document.getElementById('tempoDown').addEventListener('click', () => nudgeTempo(-4));
 document.getElementById('tempoUp').addEventListener('click', () => nudgeTempo(4));
 
 let beatTimer = 0;
 function showBeat(b) {
-  if (!rhythm.running) return;
+  if (b < 0) return;
   beatLed.classList.add('on');
-  beatLed.classList.toggle('one', b === 0);
+  beatLed.classList.toggle('one', b % 4 === 0);
   clearTimeout(beatTimer);
   beatTimer = setTimeout(() => beatLed.classList.remove('on', 'one'), 90);
 }
@@ -997,11 +1784,37 @@ function selectChord(r) {
   const pc = ROOTS[r][1];
   current = { r, quality, notes: buildStrings(pc, quality), rows };
   send({ type: 'chord', notes: current.notes });
-  chordNameEl.textContent = ROOTS[r][0] + QUALITIES[quality].suffix;
   for (const b of keyEls) b.classList.toggle('lit', +b.dataset.r === r && rows.has(+b.dataset.q));
   renderPlate();
   sendCompChord();
+  sendJunoChord();
+  renderReadout();
   updateChordSound();
+}
+
+/* The Juno reads the keys as functions, the way Chordtroller's ring hands over
+   its seventh bank: major, minor, dominant, half-diminished. dur+7 and moll+7
+   reach for the genre's extended colour, as LB does; UTÖKAD does it for all. */
+const JUNO_FUNCTION = { maj: [0, false], min: [1, false], dom7: [2, false], dim: [3, false],
+                        maj7: [0, true], min7: [1, true] };
+function junoChord() {
+  const [func, combo] = JUNO_FUNCTION[current.quality];
+  return { root: ROOTS[current.r][1], func, ext: combo || junoState.ext, genre: junoState.genre };
+}
+function sendJunoChord() { send({ type: 'junoChord', ...junoChord() }); }
+
+const subNameEl = document.getElementById('subName');
+function renderReadout() {
+  if (inst === 'juno') {
+    const c = junoChord();
+    chordNameEl.textContent = ROOTS[current.r][0] + JunoEngine.shape(c.genre, c.func, c.ext)[0];
+    subNameEl.textContent = phrase
+      ? JunoEngine.styles()[phrase.style].name + ' · ' + JunoEngine.styles()[phrase.style].v[phrase.variation].name
+      : 'Håll på plattan';
+  } else {
+    chordNameEl.textContent = ROOTS[current.r][0] + QUALITIES[current.quality].suffix;
+    subNameEl.textContent = '';
+  }
 }
 
 /* CompEngine's voicing: close root position just under the middle of the plate,
@@ -1022,7 +1835,7 @@ function sendCompChord() {
    does nothing. ACKORDLJUD and AUTOBAS switch each half off in both modes. */
 let holding = false;
 function updateChordSound() {
-  const want = held.size > 0;
+  const want = held.size > 0 && inst === 'omni';
   if (want !== holding) { holding = want; send({ type: 'hold', on: want }); }
 }
 
@@ -1121,11 +1934,81 @@ function liftFinger(e) { fingers.delete(e.pointerId); }
 plateEl.addEventListener('pointerup', liftFinger);
 plateEl.addEventListener('pointercancel', liftFinger);
 
+/* =============================================================================
+   Juno phrase plate: eight styles down, four variations across. Holding a finger
+   on a style plays it; sliding changes style or variation on the same beat;
+   lifting stops it unless HÅLL is on.
+   ============================================================================= */
+
+const phrasesEl = document.getElementById('phrases');
+const phraseRows = [];
+JunoEngine.styles().forEach((st, si) => {
+  const row = document.createElement('div');
+  row.className = 'prow';
+  row.innerHTML = '<span class="pname">' + st.name + '</span>' +
+    st.v.map((v) => '<span class="pcell">' + v.name + '</span>').join('');
+  phrasesEl.appendChild(row);
+  phraseRows.push(row);
+});
+
+function renderPhrases() {
+  const fingerDown = phraseFingers.size > 0;
+  phraseRows.forEach((row, si) => {
+    row.classList.toggle('playing', !!phrase && phrase.style === si);
+    [...row.querySelectorAll('.pcell')].forEach((c, vi) => {
+      const on = !!phrase && phrase.style === si && phrase.variation === vi;
+      c.classList.toggle('on', on);
+      c.classList.toggle('held', on && !fingerDown);
+    });
+  });
+}
+
+function sendPhrase(cell) {
+  send({ type: 'phrase', style: cell ? cell.style : -1, variation: cell ? cell.variation : 0 });
+  if (cell) phrase = cell;
+  else if (!junoState.hold) phrase = null;
+  renderPhrases();
+  renderReadout();
+}
+
+function cellAt(e) {
+  const r = phrasesEl.getBoundingClientRect();
+  const style = Math.min(7, Math.max(0, Math.floor((e.clientY - r.top) / r.height * 8)));
+  const variation = Math.min(3, Math.max(0, Math.floor((e.clientX - r.left) / r.width * 4)));
+  return { style, variation };
+}
+
+const phraseFingers = new Map();   // pointerId -> cell; the newest finger leads
+phrasesEl.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  try { phrasesEl.setPointerCapture(e.pointerId); } catch (err) {}
+  const cell = cellAt(e);
+  phraseFingers.delete(e.pointerId);
+  phraseFingers.set(e.pointerId, cell);
+  sendPhrase(cell);
+});
+phrasesEl.addEventListener('pointermove', (e) => {
+  const old = phraseFingers.get(e.pointerId);
+  if (!old) return;
+  const cell = cellAt(e);
+  if (cell.style === old.style && cell.variation === old.variation) return;
+  phraseFingers.set(e.pointerId, cell);
+  if ([...phraseFingers.keys()].pop() === e.pointerId) sendPhrase(cell);
+});
+function liftPhrase(e) {
+  if (!phraseFingers.delete(e.pointerId)) return;
+  const rest = [...phraseFingers.values()];
+  sendPhrase(rest.length ? rest[rest.length - 1] : null);
+}
+phrasesEl.addEventListener('pointerup', liftPhrase);
+phrasesEl.addEventListener('pointercancel', liftPhrase);
+
 // iOS still scrolls and zooms on touchmove unless it is cancelled outright.
 document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
 // Open on C major, the way the instrument wakes up.
+document.body.dataset.inst = 'omni';
 selectChord(3);
 </script>
 </body><!--repo-only-->

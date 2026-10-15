@@ -31,8 +31,36 @@ AudioWorkleten och ljudet faller tillbaka på huvudtråden.
 - **Strumplattan** har tretton strängar, de lägsta längst ner. Ett finger som
   sätts ner plockar strängen under sig, och ett finger som dras plockar varje
   sträng det passerar. Flera fingrar går bra.
+- **Ljudet** väljs i menyn längst till vänster på andra raden: OMNI, HARPA,
+  VIBRAFON och GITARR ur `VoiceSpec.h`. Vibrafonen ringer längst och gitarren
+  kortast; ett byte kortar eller förlänger också det som redan klingar.
 - Liggande läge ger tolv kolumner och tre rader. Stående läge vrider gridet till
   tolv rader och tre kolumner.
+
+## Juno
+
+Instrumentmenyn uppe till vänster byter till Juno: Chordtrollers
+ackordgenerator på sex Juno-röster.
+
+- **Ackordknapparna** läses som funktioner, som när ringen lämnar över sin
+  septimbank: dur, moll, 7 (dominant) och dur+moll (halvminskad). Genren
+  bestämmer vilken färg funktionen får — POP, SYNTHWAVE, HOUSE, NEO SOUL, GOSPEL
+  eller LOFI ur `JunoChords.h` — så Dm i neo soul blir Dm9. dur+7 och moll+7
+  sträcker sig efter genrens utökade färg, som LB gör, och **UTÖKAD** gör det för
+  alla knappar. Stämföringen väljer den omvändning som flyttar minst.
+- **Plattan** är fraserna ur `JunoPhrases.h`: åtta stilar uppifrån och ner —
+  PULS, ARP 1/8, ARP 1/16, RYTM, SYNKOP, STRUM, GATE, FRAS — och fyra variationer
+  i sidled. Håll ett finger på en ruta så spelar den, dra till en annan så byts
+  stilen på samma slag, och släpp så tystnar den. **HÅLL** låter frasen spela
+  vidare efter släpp, som högerspakens klick.
+- **CUTOFF** och **RESONANS** under plattan är triggrarnas filter, med samma
+  kurvor som `filterSweep`: cutoff rakt, resonansen avsmalnad och stoppad strax
+  under självsvängning. Patchens egen envelop ligger ovanpå, så ett plock
+  hörs även med cutoff i botten.
+- **Ljudet** är patcharna PAD, STRÅKAR, STÖT, PLOCK och BRASS, med var sin
+  delay ur `TempoDelay.h`. **Chorus** har lägena av, I, II och I+II, och **BAS**
+  lägger grundtonen under frasen.
+- Tempot delas med Omnins rytm.
 
 ## Vad som är portat och vad som är nytt
 
@@ -42,6 +70,8 @@ Portat rakt av, med kommentarerna kvar:
 - `Ensemble.h` — chorusen
 - `CompVoice.h`, `DrumKit.h` och figurerna, klockan och stämföringen ur
   `CompEngine.h` — ackordljudet, rytmen och autobasen
+- `JunoVoice.h`, `JunoEngine.h`, `JunoPhrases.h`, `JunoChords.h` och
+  `TempoDelay.h` — Juno, utan MIDI-ut
 - `StringSet` i `ChordRing.h` — plattans tonordning, så svepet rullar som
   originalet: C3 E3 G2 C4 E4 G3 …
 - rummet är Freeverb med samma parametrar som `juce::Reverb` har i processorn
