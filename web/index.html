@@ -235,7 +235,7 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 /* ---------- synth editor ---------- */
 /* The editor takes the left half; the plate stays on the right so a sound can be
    played while it is being turned. */
-#app.editing > .bar, #app.editing > .keys { display: none; }
+#app.editing > .bar, #app.editing > .keys, #app.editing > .seq { display: none !important; }
 .editor {
   grid-area: 1 / 1 / 3 / 2;
   display: flex;
@@ -280,6 +280,7 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   user-select: text;
 }
 .action.danger { color: var(--led); }
+.ed-note { margin: 0; font: 400 11px/1.4 var(--font-mono); color: var(--ink-dim); }
 .ed-resets { display: flex; flex-wrap: wrap; gap: 6px; grid-column: 1 / -1; padding-top: 4px; }
 .action {
   font: 600 12px/1 var(--font-key);
@@ -345,6 +346,83 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 }
 .seg button:first-child { border-left: 0; }
 .seg button[aria-pressed="true"] { background: var(--led); color: var(--key-ink); }
+
+/* ---------- 303 sequencer ---------- */
+.seq {
+  grid-area: keys;
+  display: grid;
+  gap: 2px;
+  min-height: 0;
+  min-width: 0;
+  touch-action: none;
+}
+.sc {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 3px;
+  background: var(--bezel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 500 9px/1 var(--font-mono);
+  color: var(--ink-dim);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.sc.lab { background: none; justify-content: flex-end; padding-right: 4px; }
+.sc.lab.root { color: var(--ink); }
+.sc.num { background: none; color: var(--ink-dim); cursor: pointer; }
+.sc.num.end { color: var(--led); }
+.sc.cell.root { background: color-mix(in srgb, var(--bezel) 80%, var(--ink) 6%); }
+.sc.bar4 { box-shadow: inset 1px 0 0 var(--line); }
+.sc.cell.on { background: var(--key-major); }
+.sc.cell.on.acc { background: var(--led); }
+.seq.portrait .sc.lab { justify-content: center; padding: 0; font-size: 8px; }
+[data-inst="acid"] .readout, [data-inst="acid"] .hint { display: none !important; }
+.sc.flag { font-size: 8px; letter-spacing: .06em; }
+.sc.flag.set { background: color-mix(in srgb, var(--led) 70%, transparent); color: var(--key-ink); }
+.sc.out { opacity: .35; }
+.sc.ph { outline: 1px solid var(--led); outline-offset: -1px; }
+.sc.cell.ph:not(.on) { background: color-mix(in srgb, var(--led) 14%, var(--bezel)); }
+
+/* ---------- 303 filter XY ---------- */
+.xy {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  background:
+    linear-gradient(var(--plate-line) 1px, transparent 1px) 0 0 / 100% 25%,
+    linear-gradient(90deg, var(--plate-line) 1px, transparent 1px) 0 0 / 25% 100%,
+    var(--plate);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  touch-action: none;
+  cursor: crosshair;
+}
+.xy-h, .xy-v { position: absolute; background: color-mix(in srgb, var(--led) 45%, transparent); pointer-events: none; }
+.xy-h { left: 0; right: 0; height: 1px; }
+.xy-v { top: 0; bottom: 0; width: 1px; }
+.xy-dot {
+  position: absolute;
+  width: 22px; height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  background: var(--led);
+  box-shadow: 0 0 14px var(--led);
+  pointer-events: none;
+}
+.xy-lab {
+  position: absolute;
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  pointer-events: none;
+}
+.xy-lab b { color: var(--led); font-weight: 500; }
+.xy-x { right: 8px; bottom: 8px; }
+.xy-y { left: 8px; top: 8px; }
 
 /* ---------- rhythm ---------- */
 .rhythm {
@@ -459,7 +537,10 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   min-height: 0;
   min-width: 0;
 }
-[data-inst="juno"] .omni-only, [data-inst="omni"] .juno-only { display: none !important; }
+[data-inst="juno"] .omni-only, [data-inst="omni"] .juno-only,
+[data-inst="acid"] .omni-only, [data-inst="acid"] .juno-only,
+[data-inst="omni"] .acid-only, [data-inst="juno"] .acid-only,
+[data-inst="acid"] .keys { display: none !important; }
 
 /* ---------- strumplate ---------- */
 .plate {
@@ -544,16 +625,18 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
     <select id="instrument" class="sel inst">
       <option value="omni" selected>Omni</option>
       <option value="juno">Juno</option>
+      <option value="acid">303</option>
     </select>
     <button class="transport" id="editBtn" type="button">Edit</button>
     <div class="readout" aria-live="polite">
-      <span class="label">Ackord</span>
+      <span class="label" id="readLabel">Ackord</span>
       <span id="chordName">C</span>
       <span id="subName" class="sub"></span>
     </div>
     <div class="rhythm" role="group" aria-label="Rytm">
       <span class="beat" id="beatLed" aria-hidden="true"></span>
       <button class="transport omni-only" id="startStop" type="button" aria-pressed="false">Start</button>
+      <button class="transport acid-only" id="acidPlay" type="button" aria-pressed="false">Play</button>
       <label class="sr" for="pattern">Rytm</label>
       <select id="pattern" class="sel omni-only">
         <option value="rock" selected>Rock</option>
@@ -594,10 +677,24 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
       <button class="toggle" id="extToggle" type="button" aria-pressed="false">Utökad</button>
       <button class="toggle" id="holdToggle" type="button" aria-pressed="false">Håll</button>
     </div>
+    <div class="fx acid-only">
+      <label class="sr" for="acidPatternSel">Mönster</label>
+      <select id="acidPatternSel" class="sel"></select>
+      <label class="sr" for="acidSound">Ljud</label>
+      <select id="acidSound" class="sel"></select>
+      <label class="sr" for="acidScale">Skala</label>
+      <select id="acidScale" class="sel"></select>
+      <label class="sr" for="acidKey">Tonart</label>
+      <select id="acidKey" class="sel"></select>
+      <button class="action" id="acidRandom" type="button">Slumpa</button>
+      <button class="action" id="acidClear" type="button">Rensa</button>
+      <button class="toggle" id="acidDrums" type="button" aria-pressed="true">Trummor</button>
+    </div>
     <span class="hint">Två i samma kolumn: dur+moll&nbsp;=&nbsp;dim, dur+7&nbsp;=&nbsp;maj7, moll+7&nbsp;=&nbsp;m7</span>
   </header>
 
   <div class="keys" id="keys" role="group" aria-label="Ackordknappar"></div>
+  <div class="seq acid-only" id="seq" role="grid" aria-label="303-mönster: tryck för att sätta en ton, igen för paus"></div>
 
   <section class="editor" id="editor" hidden aria-labelledby="edName">
     <div class="ed-head">
@@ -622,6 +719,22 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   <div class="side">
     <div class="plate omni-only" id="plate" role="application" aria-label="Strumplatta, dra fingret över strängarna"></div>
     <div class="phrases juno-only" id="phrases" role="application" aria-label="Frasplatta: håll på en stil för att spela den, sidled väljer variation"></div>
+    <div class="xy acid-only" id="xy" role="application" aria-label="Filter: cutoff i sidled, env mod på höjden">
+      <span class="xy-h" id="xyH"></span><span class="xy-v" id="xyV"></span><span class="xy-dot" id="xyDot"></span>
+      <span class="xy-lab xy-x">Cutoff <b id="xyCut">0</b></span>
+      <span class="xy-lab xy-y">Env mod <b id="xyEnv">0</b></span>
+    </div>
+    <div class="filters acid-only">
+      <div class="fader" id="acidResFader" role="slider" tabindex="0" aria-label="Resonans" aria-valuemin="0" aria-valuemax="100">
+        <span class="fill"></span><span class="flabel">Resonans</span><span class="fval"></span>
+      </div>
+      <div class="fader" id="acidDecayFader" role="slider" tabindex="0" aria-label="Decay" aria-valuemin="0" aria-valuemax="100">
+        <span class="fill"></span><span class="flabel">Decay</span><span class="fval"></span>
+      </div>
+      <div class="fader" id="acidMixFader" role="slider" tabindex="0" aria-label="Delay" aria-valuemin="0" aria-valuemax="100">
+        <span class="fill"></span><span class="flabel">Delay</span><span class="fval"></span>
+      </div>
+    </div>
     <div class="filters juno-only">
       <div class="fader" id="cutoffFader" role="slider" tabindex="0" aria-label="Cutoff" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60">
         <span class="fill"></span><span class="flabel">Cutoff</span><span class="fval">60</span>
@@ -1502,6 +1615,298 @@ class JunoEngine {
   }
 }
 
+/* =============================================================================
+   303 — ported from Source/dsp/AcidVoice.h and AcidEngine.h. The drums are the
+   PumpKit from Rise of the Arpeggiator (Source/audio/Drums.h), tuned as its ACID
+   song. MIDI out and host sync are left behind.
+   ============================================================================= */
+
+/* One voice shaped like a TB-303's: two envelopes (loudness follows the gate,
+   the filter only decays), an accent that pushes the filter sweep through a small
+   capacitor so close accents climb, and slide that glides the pitch without
+   restarting either envelope. The filter is the Juno's ladder voiced towards a
+   303 rather than a model of its diode ladder. */
+class AcidVoice {
+  constructor(sr) {
+    this.sr = sr;
+    const coef = (sec) => Math.pow(0.001, 1 / Math.max(1, sr * sec));
+    this.coef = coef;
+    this.attackStep = 1 / Math.max(1, sr * 0.003);
+    this.holdCoef = coef(1.8);
+    this.releaseCoef = coef(0.012);
+    this.accentMegCoef = coef(0.30);
+    this.accentFall = coef(1.0);
+    this.accentCharge = 1 - Math.exp(-1 / (sr * 0.018));
+    this.dcCoef = 1 - Math.exp(-2 * Math.PI * 20 / sr);
+    this.phase = 0; this.pitch = 48; this.target = 48;
+    this.cutoff = 0; this.res = 0; this.envMod = 0.5;
+    this.veg = 0; this.meg = 0; this.megFall = 0.999;
+    this.accentEnv = 0; this.accentSmooth = 0;
+    this.s1 = 0; this.s2 = 0; this.s3 = 0; this.s4 = 0; this.dc = 0;
+    this.stage = 0;   // 0 idle, 1 attack, 2 hold, 3 release
+    this.gate = false; this.accented = false; this.square = false;
+    this.setGlide(0.06);
+    this.setDecay(0.4);
+  }
+  setGlide(sec) { this.glideCoef = 1 - Math.exp(-1 / Math.max(1, this.sr * Math.max(0.001, sec))); }
+  /* A quarter of a second to nearly three, the span of the original's knob. */
+  setDecay(knob) { this.megCoef = this.coef(0.25 * Math.pow(2, Math.min(1, Math.max(0, knob)) * 3.5)); }
+  trigger(note, accent) {
+    this.pitch = this.target = note;
+    this.accented = accent; this.gate = true; this.stage = 1;
+    this.meg = 1;
+    this.megFall = accent ? this.accentMegCoef : this.megCoef;
+    // Charged on top of what the last accent left: close accents stack.
+    if (accent) this.accentEnv = Math.min(1.6, this.accentEnv * 0.6 + 1);
+  }
+  glideTo(note, accent) {
+    this.target = note; this.accented = accent; this.gate = true;
+    if (this.stage === 3 || this.stage === 0) this.stage = 2;
+  }
+  release() { if (!this.gate) return; this.gate = false; this.stage = 3; }
+  static blep(t, dt) {
+    if (dt <= 0) return 0;
+    if (t < dt) { t /= dt; return t + t - t * t - 1; }
+    if (t > 1 - dt) { t = (t - 1) / dt; return t * t + t + t + 1; }
+    return 0;
+  }
+  static softClip(x) { x = Math.min(3, Math.max(-3, x)); return x * (27 + x * x) / (27 + 9 * x * x); }
+  process() {
+    // The capacitor drains whether or not anything plays.
+    this.accentEnv *= this.accentFall;
+    this.accentSmooth += (this.accentEnv - this.accentSmooth) * this.accentCharge;
+    if (this.stage === 0) return 0;
+    this.meg *= this.megFall;
+    if (this.stage === 1) { this.veg += this.attackStep; if (this.veg >= 1) { this.veg = 1; this.stage = 2; } }
+    else if (this.stage === 2) this.veg *= this.holdCoef;
+    else if (this.stage === 3) { this.veg *= this.releaseCoef; if (this.veg < 1e-4) { this.veg = 0; this.stage = 0; } }
+    this.pitch += (this.target - this.pitch) * this.glideCoef;
+    const sr = this.sr, B = AcidVoice.blep, p = this.phase;
+    const dt = Math.min(0.45, 440 * Math.pow(2, (this.pitch - 69) / 12) / sr);
+    const wrap = (x) => (x >= 1 ? x - 1 : x);
+    const x = this.square ? (p < 0.5 ? 1 : -1) + B(p, dt) - B(wrap(p + 0.5), dt)
+                          : 2 * p - 1 - B(p, dt);
+    this.phase = wrap(p + dt);
+    // In octaves above 50 Hz: eight on the cutoff, six more from the envelope,
+    // and the accent's capacitor on top.
+    const oct = 8 * this.cutoff + 6 * this.envMod * this.meg + 2.4 * this.accentSmooth;
+    const hz = Math.min(0.45 * sr, Math.max(20, 50 * Math.pow(2, oct)));
+    const g = Math.tan(Math.PI * hz / sr), G = g / (1 + g), k = this.res * 3.7;
+    const S = (G * G * G * this.s1 + G * G * this.s2 + G * this.s3 + this.s4) / (1 + g);
+    const u = AcidVoice.softClip((x - k * S) / (1 + k * G * G * G * G));
+    let v = (u - this.s1) * G; const y1 = v + this.s1; this.s1 = y1 + v;
+    v = (y1 - this.s2) * G;    const y2 = v + this.s2; this.s2 = y2 + v;
+    v = (y2 - this.s3) * G;    const y3 = v + this.s3; this.s3 = y3 + v;
+    v = (y3 - this.s4) * G;    const y4 = v + this.s4; this.s4 = y4 + v;
+    let out = y4 * (1 + 0.3 * k) * this.veg * (this.accented ? 1 : 0.7);
+    this.dc += (out - this.dc) * this.dcCoef;
+    out -= this.dc;
+    return AcidVoice.softClip(out * 1.2) * 0.55;
+  }
+}
+
+/* The 16-step sequencer. Notes are scale degrees, so the key and the scale move
+   the whole line. Each step gates for half its length unless it slides on, in
+   which case the next note glides in without a new attack. */
+class AcidEngine {
+  constructor(sr) {
+    this.sr = sr;
+    this.voice = new AcidVoice(sr);
+    this.pattern = [];
+    for (let i = 0; i < 16; i++) this.pattern.push({ degree: 0, rest: true, accent: false, slide: false });
+    this.length = 16;
+    this.tones = [0, 2, 3, 5, 7, 8, 10];
+    this.key = 4; this.octave = 0;
+    this.running = false; this.phase = 0; this.playhead = 0; this.tick = 0;
+    this.gateCountdown = 0; this.minGate = Math.max(1, Math.floor(sr * 0.025));
+    this.sounding = -1;
+    this.beat = -1;
+    this.onStep = null;
+    this.setTempo(120);
+  }
+  setTempo(bpm) {
+    this.bpm = Math.min(220, Math.max(40, bpm));
+    this.sps = this.sr * 60 / this.bpm / 4;
+    this.inc = 1 / this.sps;
+  }
+  setScale(mask) {
+    this.tones = [];
+    for (let pc = 0; pc < 12; pc++) if ((mask >> pc) & 1) this.tones.push(pc);
+    if (!this.tones.length) this.tones = [0];
+  }
+  midiOf(d) {
+    const c = this.tones.length, i = Math.max(0, d);
+    return 36 + this.key + 12 * this.octave + 12 * Math.floor(i / c) + this.tones[i % c];
+  }
+  play() {
+    if (this.running) return;
+    this.closeGate();
+    this.running = true; this.phase = 0; this.playhead = 0; this.tick = 0;
+    if (this.onStep) this.onStep(0);
+    this.beat = 0;
+    this.strike(0);
+  }
+  stop() { this.running = false; this.closeGate(); this.beat = -1; }
+  closeGate() { if (this.voice.gate) this.voice.release(); this.sounding = -1; this.gateCountdown = 0; }
+  wrap(i) { return ((i % this.length) + this.length) % this.length; }
+  strike(i) {
+    const s = this.pattern[i];
+    if (s.rest) { this.closeGate(); return; }
+    const note = this.midiOf(s.degree);
+    const prev = this.pattern[this.wrap(i - 1)];
+    if (prev.slide && !prev.rest && this.voice.gate) this.voice.glideTo(note, s.accent);
+    else this.voice.trigger(note, s.accent);
+    this.sounding = note;
+    // Half a step, the 303's own gate, unless this note slides on.
+    const next = this.pattern[this.wrap(i + 1)];
+    this.gateCountdown = s.slide && !next.rest && this.running ? 0 : Math.max(this.minGate, Math.floor(0.5 * this.sps));
+  }
+  /* Stopped, a step is played when it is written, so a line can be found by ear. */
+  audition(degree, accent) {
+    if (this.running) return;
+    this.voice.trigger(this.midiOf(degree), accent);
+    this.gateCountdown = Math.max(this.minGate, Math.floor(0.5 * this.sps));
+  }
+  process() {
+    if (this.running) {
+      this.phase += this.inc;
+      if (this.phase >= 1) {
+        this.phase -= 1;
+        this.playhead = (this.playhead + 1) % this.length;
+        this.tick++;
+        if (this.onStep) this.onStep(this.tick);
+        this.beat = Math.floor(this.tick / 4);
+        this.strike(this.playhead);
+      }
+    }
+    if (this.gateCountdown > 0 && --this.gateCountdown === 0) this.closeGate();
+    return this.voice.process();
+  }
+}
+
+/* A zero-delay state-variable filter, solved rather than approximated. */
+class Svf {
+  constructor() { this.a1 = 0; this.a2 = 0; this.a3 = 0; this.k = 1; this.ic1 = 0; this.ic2 = 0; this.lp = 0; this.bp = 0; this.hp = 0; }
+  set(hz, q, sr) {
+    const g = Math.tan(Math.PI * Math.min(hz, 0.45 * sr) / sr);
+    this.k = 1 / Math.max(0.05, q);
+    this.a1 = 1 / (1 + g * (g + this.k)); this.a2 = g * this.a1; this.a3 = g * this.a2;
+  }
+  process(v0) {
+    const v3 = v0 - this.ic2;
+    const v1 = this.a1 * this.ic1 + this.a2 * v3;
+    const v2 = this.ic2 + this.a2 * this.ic1 + this.a3 * v3;
+    this.ic1 = 2 * v1 - this.ic1; this.ic2 = 2 * v2 - this.ic2;
+    this.lp = v2; this.bp = v1; this.hp = v0 - this.k * v1 - v2;
+  }
+}
+
+/* The drum machine from Rise of the Arpeggiator: a kick with a click and a
+   drive, a clap of three bursts and a tail, a snare, 808-ratio metal hats where
+   the closed one chokes the open, a shaker, a tuned perc and a crash. */
+class PumpKit {
+  constructor(sr) {
+    this.sr = sr;
+    const dc = (s) => Math.pow(0.001, 1 / Math.max(1, sr * s));
+    // The ACID song's tuning: a harder, lower kick than the house song's.
+    const t = { kickPitch: 45, kickDrop: 190, kickDecay: 0.28, kickDrive: 2.4, kickClick: 0.55,
+                clapTone: 1150, snareTone: 190, hatTone: 1.08, percPitch: 640 };
+    this.t = t;
+    this.kickDecayCoef = dc(t.kickDecay); this.kickPitchCoef = dc(0.042); this.clickCoef = dc(0.003);
+    this.snareToneCoef = dc(0.08); this.snareHissCoef = dc(0.17);
+    this.closedCoef = dc(0.045); this.openCoef = dc(0.32); this.shakerCoef = dc(0.035);
+    this.percCoef = dc(0.07); this.crashCoef = dc(1.7);
+    this.clapBp = new Svf(); this.clapBp.set(t.clapTone, 1.6, sr);
+    this.snareHp = new Svf(); this.snareHp.set(1800, 0.7, sr);
+    this.hatHp = new Svf(); this.hatHp.set(7200, 0.8, sr);
+    this.hatBp = new Svf(); this.hatBp.set(10500, 0.9, sr);
+    this.shakerHp = new Svf(); this.shakerHp.set(6500, 0.7, sr);
+    this.crashHpL = new Svf(); this.crashHpL.set(4200, 0.6, sr);
+    this.crashHpR = new Svf(); this.crashHpR.set(4700, 0.6, sr);
+    this.driveNorm = 1 / Math.tanh(Math.max(0.1, t.kickDrive));
+    this.hatInc = [205.3, 304.4, 369.6, 522.7, 540.0, 800.0].map((r) => r * t.hatTone / sr);
+    this.hatPhase = [0, 0, 0, 0, 0, 0];
+    this.kickEnv = 0; this.kickPitchEnv = 0; this.clickEnv = 0; this.kickPhase = 0;
+    this.clapAge = -1; this.clapLevel = 0;
+    this.snareTone = 0; this.snareHiss = 0; this.snarePhase = 0;
+    this.closedEnv = 0; this.openEnv = 0; this.shakerEnv = 0; this.shakerAttack = 0;
+    this.percEnv = 0; this.percPitchEnv = 0; this.percPhase = 0; this.crashEnv = 0;
+    this.rng = 0x6d2b79f5 | 0;
+  }
+  noise() { let x = this.rng; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; this.rng = x | 0; return this.rng / 2147483648; }
+  trigger(piece, vel) {
+    const v = Math.min(1.5, Math.max(0, vel));
+    switch (piece) {
+      // The phase restarts on every hit: the first transient is the whole punch.
+      case 'kick': this.kickEnv = v; this.kickPitchEnv = 1; this.clickEnv = v * this.t.kickClick; this.kickPhase = 0; break;
+      case 'clap': this.clapAge = 0; this.clapLevel = v; break;
+      case 'snare': this.snareTone = v * 0.7; this.snareHiss = v; break;
+      case 'closedHat': this.closedEnv = v; this.openEnv = 0; break;   // choke
+      case 'openHat': this.openEnv = v; break;
+      case 'shaker': this.shakerEnv = v; this.shakerAttack = 0; break;
+      case 'perc': this.percEnv = v; this.percPitchEnv = 1; break;
+      case 'crash': this.crashEnv = v; break;
+    }
+  }
+  process(io) {
+    const F = 1e-4, TWO_PI = 2 * Math.PI, sr = this.sr, t = this.t;
+    let centre = 0, left = 0, right = 0;
+    if (this.kickEnv > F || this.clickEnv > F) {
+      this.kickPhase += (t.kickPitch + t.kickDrop * this.kickPitchEnv * this.kickPitchEnv) / sr;
+      if (this.kickPhase >= 1) this.kickPhase -= 1;
+      let k = Math.sin(TWO_PI * this.kickPhase) * this.kickEnv + this.noise() * 0.6 * this.clickEnv;
+      centre += Math.tanh(k * t.kickDrive) * this.driveNorm;
+      this.kickEnv *= this.kickDecayCoef; this.kickPitchEnv *= this.kickPitchCoef; this.clickEnv *= this.clickCoef;
+    }
+    const n = this.noise();
+    if (this.clapAge >= 0) {
+      const tt = this.clapAge / sr;
+      const e = tt < 0.033 ? Math.exp(-(tt % 0.011) / 0.0022) : 0.75 * Math.exp(-(tt - 0.033) / 0.085);
+      this.clapBp.process(n);
+      centre += this.clapBp.bp * e * this.clapLevel * 1.2;
+      if (++this.clapAge > sr * 1.2) this.clapAge = -1;
+    }
+    if (this.snareHiss > F || this.snareTone > F) {
+      this.snarePhase += t.snareTone / sr; if (this.snarePhase >= 1) this.snarePhase -= 1;
+      this.snareHp.process(n);
+      centre += Math.sin(TWO_PI * this.snarePhase) * this.snareTone * 0.7 + this.snareHp.hp * this.snareHiss * 0.55;
+      this.snareTone *= this.snareToneCoef; this.snareHiss *= this.snareHissCoef;
+    }
+    if (this.closedEnv > F || this.openEnv > F || this.crashEnv > F) {
+      let metal = 0;
+      for (let i = 0; i < 6; i++) {
+        this.hatPhase[i] += this.hatInc[i]; if (this.hatPhase[i] >= 1) this.hatPhase[i] -= 1;
+        metal += this.hatPhase[i] < 0.5 ? 1 : -1;
+      }
+      metal /= 6;
+      this.hatHp.process(metal); this.hatBp.process(this.hatHp.hp);
+      const hat = this.hatBp.bp * 1.6 + this.hatHp.hp * 0.4;
+      left += hat * this.closedEnv * 0.45; right += hat * this.closedEnv * 0.80;
+      left += hat * this.openEnv * 0.45; right += hat * this.openEnv * 0.25;
+      this.closedEnv *= this.closedCoef; this.openEnv *= this.openCoef;
+      if (this.crashEnv > F) {
+        const n2 = this.noise();
+        this.crashHpL.process(n * 0.6 + metal * 0.5); this.crashHpR.process(n2 * 0.6 + metal * 0.5);
+        left += this.crashHpL.hp * this.crashEnv * 0.42; right += this.crashHpR.hp * this.crashEnv * 0.42;
+        this.crashEnv *= this.crashCoef;
+      }
+    }
+    if (this.shakerEnv > F) {
+      this.shakerAttack = Math.min(1, this.shakerAttack + 1 / (0.004 * sr));
+      this.shakerHp.process(n);
+      left += this.shakerHp.hp * this.shakerEnv * this.shakerAttack * 0.4;
+      this.shakerEnv *= this.shakerCoef;
+    }
+    if (this.percEnv > F) {
+      this.percPhase += t.percPitch * (1 + 0.35 * this.percPitchEnv) / sr; if (this.percPhase >= 1) this.percPhase -= 1;
+      const p = Math.sin(TWO_PI * this.percPhase) * this.percEnv * 0.5;
+      left += p * 0.6; right += p * 0.4;
+      this.percEnv *= this.percCoef; this.percPitchEnv *= this.kickPitchCoef;
+    }
+    io[0] = centre + left; io[1] = centre + right;
+  }
+}
+
 /* The instrument: a 48-voice pool, the plate's notes, and a queue of plucks
    placed on the sample they were scheduled for. */
 class OmniDSP {
@@ -1525,6 +1930,51 @@ class OmniDSP {
     this.ensJ = new Ensemble(sr);
     this.delay = new TempoDelay(sr);
     this.jframe = [0, 0];
+    // The 303, its delay, and the drum machine that runs on its clock.
+    this.acid = new AcidEngine(sr);
+    this.delayA = new TempoDelay(sr);
+    this.kit = new PumpKit(sr);
+    this.acidSet = { level: 1, mix: 0.25, dryGain: 1, wetGain: 0, drums: true, layer: 5, backbeat: 'snare', pump: 0.55, drumLevel: 1 };
+    this.sinceKick = 1 << 30;
+    this.aframe = [0, 0]; this.dframe = [0, 0];
+    this.acid.onStep = (tick) => this.drumStep(tick);
+  }
+
+  /* The 303's sound and the drums, as the screen sends them. */
+  setAcid(m) {
+    const a = this.acid, v = a.voice, set = this.acidSet;
+    const sw = JunoEngine.sweep(m.cutoff, m.resonance);
+    v.cutoff = sw.cutoff; v.res = sw.res;
+    v.envMod = m.envMod; v.setDecay(m.decay); v.square = m.square;
+    v.setGlide([0.03, 0.06, 0.14, 0.30][m.glide] || 0.06);
+    a.setTempo(m.bpm);
+    a.setScale(m.scaleMask); a.key = m.key; a.octave = m.octave;
+    // Delay: a real dry/wet with equal power, always fed, so turning the mix
+    // up brings in echoes of what has already played. The echo knob is how long
+    // the repeats ring, from a fifth of a second to twelve, at any tempo.
+    this.delayA.setTiming(a.bpm, m.division);
+    const echoSeconds = 0.2 * Math.pow(60, m.echo);
+    const gain = m.echo <= 0 ? 0 : Math.pow(10, -3 * (this.delayA.target / this.sr) / echoSeconds);
+    this.delayA.setAmount(1, gain);
+    const angle = m.mix * Math.PI / 2;
+    set.dryGain = Math.cos(angle); set.wetGain = Math.sin(angle);
+    set.level = m.level; set.drums = m.drums; set.layer = m.layer; set.backbeat = m.backbeat;
+    set.pump = m.pump; set.drumLevel = m.drumLevel;
+  }
+
+  /* One sixteenth of the drum pattern, layered the way Rise of the Arpeggiator
+     builds its songs: kick, then the off-beat hat, the sixteenths and shaker,
+     the open hat and perc, and last the backbeat. */
+  drumStep(tick) {
+    const set = this.acidSet;
+    if (!set.drums) return;
+    const k = this.kit, step = tick % 16, on = (layer) => set.layer >= layer;
+    if (step % 4 === 0) { k.trigger('kick', step === 0 ? 1.0 : 0.92); this.sinceKick = 0; }
+    const offbeat = step % 4 === 2;
+    if (on(2) && offbeat) k.trigger(on(4) ? 'openHat' : 'closedHat', 0.85);
+    if (on(3) && !offbeat) { k.trigger('closedHat', step % 2 ? 0.42 : 0.28); if (step % 2) k.trigger('shaker', 0.5); }
+    if (on(4) && (step === 3 || step === 7 || step === 10 || step === 14)) k.trigger('perc', step === 10 ? 0.7 : 0.45);
+    if (on(5) && (step === 4 || step === 12)) k.trigger(set.backbeat, 0.95);
   }
 
   /* The four timbres from VoiceSpec.h, as data. The decay scale multiplies the
@@ -1583,7 +2033,15 @@ class OmniDSP {
         this.delay.setAmount(m.patch.delaySend, m.patch.delayFeedback);
       }
     }
-    else if (m.type === 'instrument') { this.inst = m.name; if (m.name !== 'juno') this.juno.allOff(); }
+    else if (m.type === 'instrument') {
+      this.inst = m.name;
+      if (m.name !== 'juno') this.juno.allOff();
+      if (m.name !== 'acid') this.acid.stop();
+    }
+    else if (m.type === 'acidParams') this.setAcid(m);
+    else if (m.type === 'acidPattern') { this.acid.pattern = m.steps; this.acid.length = m.length; this.acid.playhead %= m.length; }
+    else if (m.type === 'acidTransport') { if (m.running) this.acid.play(); else this.acid.stop(); }
+    else if (m.type === 'acidAudition') this.acid.audition(m.degree, m.accent);
     else if (m.type === 'junoChord') this.juno.setChord(m.root, m.func, m.ext, m.genre);
     else if (m.type === 'junoParams') this.setJuno(m);
     else if (m.type === 'phrase') this.juno.setPhrase(m.style, m.variation);
@@ -1591,7 +2049,7 @@ class OmniDSP {
 
   /* The beat the rhythm last landed on, once per change, for the tempo light. */
   takeBeat() {
-    const b = this.inst === 'juno' ? this.juno.beat : this.comp.beat;
+    const b = this.inst === 'juno' ? this.juno.beat : this.inst === 'acid' ? this.acid.beat : this.comp.beat;
     if (b === this.lastBeat) return -1;
     this.lastBeat = b;
     return b;
@@ -1636,6 +2094,19 @@ class OmniDSP {
       this.delay.process(jf);
       fr[0] += jf[0]; fr[1] += jf[1];
       this.verb.process(fr);
+      // The 303 and its drums come in after the room: a 303 is dry, its space
+      // is the delay, and a bass line through a hall is mud.
+      const set = this.acidSet, af = this.aframe, df = this.dframe;
+      const d = Math.min(1, this.sinceKick / (this.sr * 60 / this.acid.bpm * 0.5));
+      const pump = set.drums ? (1 - d) * (1 - d) : 0;   // the kick pushes the 303 down and lets it swell back
+      if (this.sinceKick < (1 << 30)) this.sinceKick++;
+      const bass = this.acid.process() * 0.8 * set.level * (1 - set.pump * pump);
+      af[0] = bass; af[1] = bass;
+      this.delayA.process(af);
+      this.kit.process(df);
+      const dl = df[0] * 0.4 * set.drumLevel, dr = df[1] * 0.4 * set.drumLevel;
+      fr[0] += bass * set.dryGain + (af[0] - bass) * set.wetGain + dl;
+      fr[1] += bass * set.dryGain + (af[1] - bass) * set.wetGain + dr;
       L[i] = Math.tanh(fr[0]);
       R[i] = Math.tanh(fr[1]);
     }
@@ -1707,7 +2178,7 @@ function send(m) {
 }
 
 function workletSource() {
-  return [PluckVoice, Ensemble, CompVoice, DrumKit, Comp, Freeverb, JunoVoice, TempoDelay, JunoEngine, OmniDSP].map((c) => c.toString()).join('\n') + `
+  return [PluckVoice, Ensemble, CompVoice, DrumKit, Comp, Freeverb, JunoVoice, TempoDelay, JunoEngine, AcidVoice, AcidEngine, Svf, PumpKit, OmniDSP].map((c) => c.toString()).join('\n') + `
 class OmniProcessor extends AudioWorkletProcessor {
   constructor() { super(); this.dsp = new OmniDSP(sampleRate); this.port.onmessage = (e) => this.dsp.message(e.data); }
   process(inputs, outputs) {
@@ -1715,6 +2186,8 @@ class OmniProcessor extends AudioWorkletProcessor {
     this.dsp.process(o[0], o[1] || new Float32Array(o[0].length), o[0].length);
     const b = this.dsp.takeBeat();
     if (b >= 0) this.port.postMessage({ type: 'beat', beat: b });
+    const ph = this.dsp.acid.running ? this.dsp.acid.playhead : -1;
+    if (ph !== this.lastPh) { this.lastPh = ph; this.port.postMessage({ type: 'acidStep', step: ph }); }
     return true;
   }
 }
@@ -1736,7 +2209,10 @@ async function startAudio() {
     const url = URL.createObjectURL(new Blob([workletSource()], { type: 'application/javascript' }));
     await ctx.audioWorklet.addModule(url);
     node = new AudioWorkletNode(ctx, 'omni', { numberOfInputs: 0, outputChannelCount: [2] });
-    node.port.onmessage = (e) => { if (e.data.type === 'beat') showBeat(e.data.beat); };
+    node.port.onmessage = (e) => {
+      if (e.data.type === 'beat') showBeat(e.data.beat);
+      else if (e.data.type === 'acidStep') showPlayhead(e.data.step);
+    };
   } catch (e) {
     // No worklet (or it was blocked): run the same DSP on the main thread.
     dsp = new OmniDSP(ctx.sampleRate);
@@ -1746,6 +2222,8 @@ async function startAudio() {
       dsp.process(b.getChannelData(0), b.getChannelData(1), b.length);
       const beat = dsp.takeBeat();
       if (beat >= 0) showBeat(beat);
+      const ph = dsp.acid.running ? dsp.acid.playhead : -1;
+      if (ph !== lastPlayhead) showPlayhead(ph);
     };
   }
   node.connect(ctx.destination);
@@ -1758,6 +2236,8 @@ async function startAudio() {
   sendVoiceSpec();
   sounds.juno.forEach((_, i) => sendJunoPatch(i));
   sendOmniFx();
+  sendAcidParams();
+  sendAcidPattern();
   send({ type: 'instrument', name: inst });
   sendJunoParams();
   sendJunoChord();
@@ -1811,10 +2291,12 @@ const instSel = document.getElementById('instrument');
 function setInstrument(name) {
   inst = name;
   document.body.dataset.inst = name;
-  if (name === 'juno' && rhythm.running) startBtn.click();   // the Omni's rhythm stops
+  if (name !== 'omni' && rhythm.running) startBtn.click();   // the Omni's rhythm stops
+  if (name !== 'acid' && acidState.running) toggleAcid();
   if (name !== 'juno') { phraseFingers.clear(); phrase = null; renderPhrases(); }
   send({ type: 'instrument', name });
   if (name === 'juno') { sendJunoParams(); sendJunoChord(); }
+  if (name === 'acid') { sendAcidParams(); sendAcidPattern(); layoutSeq(); }
   beatLed.classList.remove('on', 'one');
   updateChordSound();
   renderReadout();
@@ -1852,11 +2334,11 @@ for (const [id, key] of [['junoBassToggle', 'bass'], ['extToggle', 'ext'], ['hol
 /* A fader is a strip: the finger's position along it is the value. */
 const mainFaderShows = [];
 function refreshMainFaders() { mainFaderShows.forEach((f) => f()); }
-function makeFader(id, key) {
+function makeFader(id, key, target = () => junoState, after = sendJunoParams) {
   const el = document.getElementById(id);
   const fill = el.querySelector('.fill'), val = el.querySelector('.fval');
   const show = () => {
-    const pct = Math.round(junoState[key] * 100);
+    const pct = Math.round(target()[key] * 100);
     fill.style.width = pct + '%';
     val.textContent = pct;
     el.setAttribute('aria-valuenow', String(pct));
@@ -1864,8 +2346,8 @@ function makeFader(id, key) {
   mainFaderShows.push(show);
   const setFrom = (x) => {
     const r = el.getBoundingClientRect();
-    junoState[key] = Math.min(1, Math.max(0, (x - r.left) / r.width));
-    show(); sendJunoParams();
+    target()[key] = Math.min(1, Math.max(0, (x - r.left) / r.width));
+    show(); after();
   };
   el.addEventListener('pointerdown', (e) => {
     e.preventDefault();
@@ -1881,8 +2363,8 @@ function makeFader(id, key) {
     const d = { ArrowRight: 0.02, ArrowUp: 0.02, ArrowLeft: -0.02, ArrowDown: -0.02 }[e.key];
     if (d === undefined) return;
     e.preventDefault();
-    junoState[key] = Math.min(1, Math.max(0, junoState[key] + d));
-    show(); sendJunoParams();
+    target()[key] = Math.min(1, Math.max(0, target()[key] + d));
+    show(); after();
   });
   show();
 }
@@ -1921,23 +2403,61 @@ const FACTORY = {
   fx: { chorusRate: 0.5, chorusMix: 0.45, roomSize: 0.62, roomDamp: 0.42, roomWet: 0.30 },
   junoChorus: 1
 };
-const sounds = { omni: clone(FACTORY.omni), juno: clone(FACTORY.juno) };
+FACTORY.acid = [
+  { name: '303', cutoff: 0.30, resonance: 0.62, envMod: 0.55, decay: 0.45, square: false, glide: 1, level: 1, mix: 0.25, echo: 0.6, division: 1 },
+  { name: 'FYRKANT', cutoff: 0.24, resonance: 0.70, envMod: 0.65, decay: 0.35, square: true, glide: 1, level: 1, mix: 0.30, echo: 0.65, division: 1 },
+  { name: 'MJUK', cutoff: 0.40, resonance: 0.30, envMod: 0.30, decay: 0.70, square: false, glide: 2, level: 1, mix: 0.15, echo: 0.5, division: 2 }
+];
+const sounds = { omni: clone(FACTORY.omni), juno: clone(FACTORY.juno), acid: clone(FACTORY.acid) };
 const fxState = clone(FACTORY.fx);
 
 const STORE = 'chordtroller-web-sounds-v1';
+
+/* ---------- 303 state, patterns and scales ---------- */
+
+// The scales Chordtroller's 303 steps through, minor first: acid lives there.
+const ACID_SCALES = [
+  { name: 'Moll', mask: [0, 2, 3, 5, 7, 8, 10] },
+  { name: 'Frygisk', mask: [0, 1, 4, 5, 7, 8, 10] },
+  { name: 'Mollpent', mask: [0, 3, 5, 7, 10] },
+  { name: 'Blues', mask: [0, 3, 5, 6, 7, 10] },
+  { name: 'Dur', mask: [0, 2, 4, 5, 7, 9, 11] },
+  { name: 'Kromatisk', mask: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }
+].map((sc) => ({ name: sc.name, tones: sc.mask, mask: sc.mask.reduce((m, pc) => m | (1 << pc), 0) }));
+
+const acidState = { running: false, key: 4, scale: 0, octave: 0, drums: true, layer: 5, backbeat: 'snare', pump: 0.55, drumLevel: 1 };
+
+/* A pattern is sixteen steps of scale degrees. ACID is the bass line from Rise
+   of the Arpeggiator's ACID song, written as degrees of the minor scale. */
+const acidNote = (degree, accent = false, slide = false) => ({ degree, rest: false, accent, slide });
+const REST = () => ({ degree: 0, rest: true, accent: false, slide: false });
+const FACTORY_PATTERNS = [
+  { name: 'ACID', length: 16, steps: [
+    acidNote(0, true), REST(), acidNote(7), acidNote(0, false, true),
+    acidNote(0), REST(), acidNote(7, true), acidNote(4),
+    acidNote(0), acidNote(0, false, true), acidNote(7), REST(),
+    acidNote(0, true), acidNote(4), acidNote(7, false, true), acidNote(0) ] },
+  { name: 'TOM', length: 16, steps: Array.from({ length: 16 }, REST) }
+];
+const acidPatterns = clone(FACTORY_PATTERNS);
 try {
   const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
   if (saved) {
     // Saved sounds are laid over the factory rows, so fields added since (the
     // Juno's LFO section) arrive with their defaults; the user's own sounds
     // follow the factory ones.
-    for (const kind of ['omni', 'juno']) {
+    for (const kind of ['omni', 'juno', 'acid']) {
       (saved[kind] || []).forEach((v, i) => {
         if (sounds[kind][i]) Object.assign(sounds[kind][i], v);
         else if (v && v.user) sounds[kind].push(Object.assign(clone(FACTORY[kind][0]), v));
       });
     }
     Object.assign(fxState, saved.fx || {});
+    Object.assign(acidState, saved.acidState || {}, { running: false });
+    (saved.patterns || []).forEach((v, i) => {
+      if (acidPatterns[i]) Object.assign(acidPatterns[i], v);
+      else if (v && v.user) acidPatterns.push(v);
+    });
   }
 } catch (e) {}
 
@@ -1945,15 +2465,20 @@ let saveTimer = 0;
 function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    try { localStorage.setItem(STORE, JSON.stringify({ omni: sounds.omni, juno: sounds.juno, fx: fxState })); } catch (e) {}
+    try {
+      localStorage.setItem(STORE, JSON.stringify({ omni: sounds.omni, juno: sounds.juno, acid: sounds.acid, fx: fxState,
+                                                    acidState, patterns: acidPatterns }));
+    } catch (e) {}
   }, 300);
 }
 
 const voiceSel = document.getElementById('voice');
+const acidSoundSel = document.getElementById('acidSound');
+const acidPatternSel = document.getElementById('acidPatternSel');
 
 /* Both sound menus: the factory sounds, then the user's own under Egna. */
 function rebuildSoundMenus() {
-  for (const [sel, list] of [[voiceSel, sounds.omni], [patchSel, sounds.juno]]) {
+  for (const [sel, list] of [[voiceSel, sounds.omni], [patchSel, sounds.juno], [acidSoundSel, sounds.acid], [acidPatternSel, acidPatterns]]) {
     const keep = sel.value;
     sel.textContent = '';
     let group = null;
@@ -2038,8 +2563,13 @@ const EDIT = {
   ]
 };
 
-function soundBeingEdited() { return inst === 'omni' ? sounds.omni[+voiceSel.value] : sounds.juno[junoState.patch]; }
-function targetOf(item) { return item.obj === 'fx' ? fxState : item.obj === 'juno' ? junoState : soundBeingEdited(); }
+function soundBeingEdited() {
+  if (inst === 'acid') return sounds.acid[+acidSoundSel.value];
+  return inst === 'omni' ? sounds.omni[+voiceSel.value] : sounds.juno[junoState.patch];
+}
+function targetOf(item) {
+  return item.obj === 'fx' ? fxState : item.obj === 'juno' ? junoState : item.obj === 'acid' ? acidState : soundBeingEdited();
+}
 
 /* Hands a change to the engine, wherever the value lives. */
 function commit(item) {
@@ -2048,7 +2578,8 @@ function commit(item) {
     sendJunoParams();
     refreshMainFaders();
     document.getElementById('junoChorus').value = String(junoState.chorus);
-  } else if (inst === 'omni') sendVoiceSpec();
+  } else if (inst === 'acid' || item.obj === 'acid') { sendAcidParams(); refreshMainFaders(); renderSeq(); renderReadout(); }
+  else if (inst === 'omni') sendVoiceSpec();
   else sendJunoPatch(junoState.patch);
   save();
 }
@@ -2137,10 +2668,11 @@ function renderEditor() {
   document.getElementById('resetSound').hidden = !!sound.user;
   document.getElementById('deleteSound').hidden = !sound.user;
   arm(deleteBtn, false);
-  edName.textContent = (inst === 'omni' ? 'Omni · ' : 'Juno · ') + title(sound.name);
+  edName.textContent = ({ omni: 'Omni · ', juno: 'Juno · ', acid: '303 · ' })[inst] + title(sound.name);
   const scroll = edBody.scrollTop;
   edBody.textContent = '';
   for (const g of EDIT[inst]) {
+    if (g.custom) { edBody.appendChild(g.custom()); continue; }
     const sec = document.createElement('div');
     sec.className = 'ed-group';
     const h = document.createElement('h3');
@@ -2175,10 +2707,19 @@ document.getElementById('edDone').addEventListener('click', closeEditor);
 const saveForm = document.getElementById('saveForm');
 const nameInput = document.getElementById('presetName');
 
-document.getElementById('saveAs').addEventListener('click', () => {
+let saveWhat = 'sound';
+function openSave(what) {
+  saveWhat = what;
   saveForm.hidden = false;
-  const own = sounds[inst].filter((x) => x.user).length;
-  nameInput.value = 'Eget ' + (own + 1);
+  const list = what === 'pattern' ? acidPatterns : sounds[inst];
+  const own = list.filter((x) => x.user).length;
+  nameInput.value = (what === 'pattern' ? 'Mönster ' : 'Eget ') + (own + 1);
+  nameInput.focus();
+  nameInput.select();
+}
+document.getElementById('saveAs').addEventListener('click', () => {
+  openSave('sound');
+  return;
   nameInput.focus();
   nameInput.select();
 });
@@ -2187,6 +2728,18 @@ document.getElementById('saveCancel').addEventListener('click', () => { saveForm
 /* The sound as it is now becomes a new sound of the user's own, and is selected. */
 saveForm.addEventListener('submit', (e) => {
   e.preventDefault();
+  if (saveWhat === 'pattern') {
+    const fresh = clone(currentPattern());
+    fresh.name = (nameInput.value.trim() || 'Mönster').toUpperCase().slice(0, 16);
+    fresh.user = true;
+    acidPatterns.push(fresh);
+    rebuildSoundMenus();
+    acidPatternSel.value = String(acidPatterns.length - 1);
+    sendAcidPattern(); renderSeq(); renderReadout();
+    saveForm.hidden = true; nameInput.blur();
+    save(); renderEditor();
+    return;
+  }
   const fresh = clone(soundBeingEdited());
   fresh.name = (nameInput.value.trim() || 'Eget').toUpperCase().slice(0, 16);
   fresh.user = true;
@@ -2194,6 +2747,7 @@ saveForm.addEventListener('submit', (e) => {
   const i = sounds[inst].length - 1;
   rebuildSoundMenus();
   if (inst === 'omni') { voiceSel.value = String(i); sendVoiceSpec(); }
+  else if (inst === 'acid') { acidSoundSel.value = String(i); sendAcidParams(); refreshMainFaders(); }
   else { patchSel.value = String(i); junoState.patch = i; sendJunoPatch(i); sendJunoParams(); }
   saveForm.hidden = true;
   nameInput.blur();
@@ -2206,19 +2760,21 @@ const deleteBtn = document.getElementById('deleteSound');
 let armTimer = 0;
 function arm(btn, on) {
   clearTimeout(armTimer);
+  if (!btn.dataset.idle) btn.dataset.idle = btn.textContent;
   btn.dataset.armed = on ? '1' : '';
-  btn.textContent = on ? 'Tryck igen för att radera' : 'Radera ljud';
+  btn.textContent = on ? 'Tryck igen' : btn.dataset.idle;
   if (on) armTimer = setTimeout(() => arm(btn, false), 3000);
 }
 deleteBtn.addEventListener('click', () => {
   if (!deleteBtn.dataset.armed) { arm(deleteBtn, true); return; }
   arm(deleteBtn, false);
-  const i = inst === 'omni' ? +voiceSel.value : junoState.patch;
+  const i = inst === 'omni' ? +voiceSel.value : inst === 'acid' ? +acidSoundSel.value : junoState.patch;
   if (!sounds[inst][i] || !sounds[inst][i].user) return;
   sounds[inst].splice(i, 1);
-  if (inst === 'omni') voiceSel.value = '0'; else patchSel.value = '0';
+  ({ omni: voiceSel, juno: patchSel, acid: acidSoundSel })[inst].value = '0';
   rebuildSoundMenus();
   if (inst === 'omni') sendVoiceSpec();
+  else if (inst === 'acid') { sendAcidParams(); refreshMainFaders(); }
   else {
     // Everything after the deleted sound moved down one place.
     junoState.patch = 0;
@@ -2230,12 +2786,13 @@ deleteBtn.addEventListener('click', () => {
 });
 
 document.getElementById('resetSound').addEventListener('click', () => {
-  const i = inst === 'omni' ? +voiceSel.value : junoState.patch;
+  const i = inst === 'omni' ? +voiceSel.value : inst === 'acid' ? +acidSoundSel.value : junoState.patch;
   const fresh = clone(FACTORY[inst][i]);
   // Delay belongs to the Juno patch but lives under effects, so it stays put here.
   if (inst === 'juno') for (const k of ['delaySend', 'delayFeedback', 'delayDivision']) fresh[k] = sounds.juno[i][k];
   Object.assign(sounds[inst][i], fresh);
   if (inst === 'juno') { junoState.cutoff = 0.6; junoState.resonance = 0.15; sendJunoParams(); refreshMainFaders(); }
+  if (inst === 'acid') refreshMainFaders();
   commit({});
   renderEditor();
 });
@@ -2243,6 +2800,12 @@ document.getElementById('resetSound').addEventListener('click', () => {
 document.getElementById('resetFx').addEventListener('click', () => {
   Object.assign(fxState, clone(FACTORY.fx));
   sendOmniFx();
+  if (inst === 'acid') {
+    const i = +acidSoundSel.value;
+    for (const k of ['mix', 'echo', 'division']) sounds.acid[i][k] = (FACTORY.acid[i] || FACTORY.acid[0])[k];
+    Object.assign(acidState, { layer: 5, backbeat: 'snare', pump: 0.55, drumLevel: 1 });
+    sendAcidParams(); refreshMainFaders();
+  }
   if (inst === 'juno') {
     const i = junoState.patch;
     for (const k of ['delaySend', 'delayFeedback', 'delayDivision']) sounds.juno[i][k] = FACTORY.juno[i][k];
@@ -2331,6 +2894,12 @@ function sendJunoChord() { send({ type: 'junoChord', ...junoChord() }); }
 
 const subNameEl = document.getElementById('subName');
 function renderReadout() {
+  document.getElementById('readLabel').textContent = inst === 'acid' ? 'Tonart' : 'Ackord';
+  if (inst === 'acid') {
+    chordNameEl.textContent = PC_NAMES[acidState.key];
+    subNameEl.textContent = ACID_SCALES[acidState.scale].name + ' · ' + title(currentPattern().name);
+    return;
+  }
   if (inst === 'juno') {
     const c = junoChord();
     chordNameEl.textContent = ROOTS[current.r][0] + JunoEngine.shape(c.genre, c.func, c.ext)[0];
@@ -2528,6 +3097,305 @@ function liftPhrase(e) {
 }
 phrasesEl.addEventListener('pointerup', liftPhrase);
 phrasesEl.addEventListener('pointercancel', liftPhrase);
+
+
+/* =============================================================================
+   303: the sequencer grid, the filter XY and the transport.
+   ============================================================================= */
+
+function currentPattern() { return acidPatterns[+acidPatternSel.value] || acidPatterns[0]; }
+function acidSound() { return sounds.acid[+acidSoundSel.value] || sounds.acid[0]; }
+const scaleNotes = () => ACID_SCALES[acidState.scale].tones.length;
+
+function sendAcidParams() {
+  const snd = acidSound();
+  send({ type: 'acidParams', ...snd, bpm: rhythm.bpm, scaleMask: ACID_SCALES[acidState.scale].mask,
+         key: acidState.key, octave: acidState.octave, drums: acidState.drums, layer: acidState.layer,
+         backbeat: acidState.backbeat, pump: acidState.pump, drumLevel: acidState.drumLevel });
+}
+function sendAcidPattern() {
+  const pat = currentPattern();
+  send({ type: 'acidPattern', steps: clone(pat.steps), length: pat.length });
+}
+
+const acidPlayBtn = document.getElementById('acidPlay');
+function toggleAcid() {
+  acidState.running = !acidState.running;
+  acidPlayBtn.setAttribute('aria-pressed', String(acidState.running));
+  acidPlayBtn.textContent = acidState.running ? 'Stopp' : 'Play';
+  send({ type: 'acidTransport', running: acidState.running });
+  if (!acidState.running) { showPlayhead(-1); beatLed.classList.remove('on', 'one'); }
+}
+acidPlayBtn.addEventListener('click', toggleAcid);
+
+const acidScaleSel = document.getElementById('acidScale');
+ACID_SCALES.forEach((sc, i) => acidScaleSel.add(new Option(sc.name, i)));
+const acidKeySel = document.getElementById('acidKey');
+PC_NAMES.forEach((n, i) => acidKeySel.add(new Option(n, i)));
+function syncAcidMenus() {
+  acidScaleSel.value = String(acidState.scale);
+  acidKeySel.value = String(acidState.key);
+  document.getElementById('acidDrums').setAttribute('aria-pressed', String(acidState.drums));
+}
+acidScaleSel.addEventListener('change', () => { acidState.scale = +acidScaleSel.value; sendAcidParams(); buildSeq(); renderReadout(); save(); });
+acidKeySel.addEventListener('change', () => { acidState.key = +acidKeySel.value; sendAcidParams(); renderSeq(); renderReadout(); save(); });
+acidSoundSel.addEventListener('change', () => { sendAcidParams(); refreshMainFaders(); });
+acidPatternSel.addEventListener('change', () => { sendAcidPattern(); renderSeq(); renderReadout(); });
+document.getElementById('acidDrums').addEventListener('click', (e) => {
+  acidState.drums = !acidState.drums;
+  e.currentTarget.setAttribute('aria-pressed', String(acidState.drums));
+  sendAcidParams(); save();
+});
+
+/* A new line, made up the way Chordtroller's 303 does it: it leans on the root
+   and the octave, rests often enough to breathe, slides only into notes, and
+   starts on the root. How busy, how accented and how high are drawn fresh. */
+function randomizePattern() {
+  const pat = currentPattern(), notes = scaleNotes(), top = Math.min(24, 2 * notes);
+  const restChance = 0.15 + 0.25 * Math.random();
+  const accentChance = 0.12 + 0.18 * Math.random();
+  const slideChance = 0.08 + 0.20 * Math.random();
+  const reach = Math.min(top, Math.max(1, notes + 1 + Math.floor(Math.random() * notes)));
+  pat.steps.forEach((st, i) => {
+    st.rest = i > 0 && Math.random() < restChance;
+    st.accent = Math.random() < accentChance;
+    st.slide = Math.random() < slideChance;
+    const pick = Math.random();
+    st.degree = pick < 0.35 ? 0 : pick < 0.5 ? Math.min(top, notes) : 1 + Math.floor(Math.random() * reach);
+  });
+  pat.steps[0].degree = 0;
+  pat.steps.forEach((st, i) => {
+    const next = pat.steps[i === pat.length - 1 ? 0 : (i + 1) % 16];
+    if (next.rest) st.slide = false;   // a slide into a rest is a slide nobody hears
+  });
+}
+document.getElementById('acidRandom').addEventListener('click', () => {
+  randomizePattern(); sendAcidPattern(); renderSeq(); save();
+});
+const clearBtn = document.getElementById('acidClear');
+clearBtn.addEventListener('click', () => {
+  if (!clearBtn.dataset.armed) { arm(clearBtn, true); return; }
+  arm(clearBtn, false);
+  currentPattern().steps = Array.from({ length: 16 }, REST);
+  sendAcidPattern(); renderSeq(); save();
+});
+
+/* ---------- the grid ----------
+   Rows are the scale from the root up to its octave; UPP lifts a step an octave,
+   which is how a 303 reaches the second octave. Landscape has the sixteen steps
+   across; portrait turns them to run down the screen. */
+const seqEl = document.getElementById('seq');
+let seqCells = [];          // every cell, with its step and role
+let seqCols = [];           // cells by step, for the playhead
+let lastPlayhead = -1;
+
+function rowOf(degree) {
+  const n = scaleNotes();
+  return degree > n ? { k: Math.min(n, degree - n), up: true } : { k: degree, up: false };
+}
+
+function buildSeq() {
+  const n = scaleNotes();
+  seqEl.textContent = '';
+  seqCells = []; seqCols = Array.from({ length: 16 }, () => []);
+  const add = (cls, s, role, k, text) => {
+    const c = document.createElement('div');
+    c.className = 'sc ' + cls;
+    c.dataset.s = s; c.dataset.role = role; c.dataset.k = k;
+    if (text) c.textContent = text;
+    seqEl.appendChild(c);
+    const rec = { el: c, s, role, k };
+    seqCells.push(rec);
+    if (s >= 0) seqCols[s].push(rec);
+    return rec;
+  };
+  for (let s = 0; s < 16; s++) add('num', s, 'num', 0, String(s + 1));
+  for (let k = n; k >= 0; k--) {
+    add('lab' + (k % n === 0 ? ' root' : ''), -1, 'lab', k, '');
+    for (let s = 0; s < 16; s++) add('cell' + (k % n === 0 ? ' root' : ''), s, 'note', k);
+  }
+  for (const [role, text] of [['up', 'UPP'], ['acc', 'ACC'], ['sld', 'SLD']]) {
+    add('lab', -1, 'lab-' + role, 0, text);
+    for (let s = 0; s < 16; s++) add('flag', s, role, 0, '');
+  }
+  layoutSeq();
+  renderSeq();
+}
+
+function layoutSeq() {
+  const n = scaleNotes(), rows = n + 1 + 3;   // notes, then UPP ACC SLD
+  const portrait = portraitQuery.matches;
+  seqEl.classList.toggle('portrait', portrait);
+  seqEl.style.gridTemplateColumns = portrait ? `30px repeat(${rows}, minmax(0, 1fr))` : `30px repeat(16, minmax(0, 1fr))`;
+  seqEl.style.gridTemplateRows = portrait ? `16px repeat(16, minmax(0, 1fr))` : `16px repeat(${rows}, minmax(0, 1fr))`;
+  for (const c of seqCells) {
+    // Row index within the instrument: 0 the step numbers, then the notes from
+    // the top down, then the three flags.
+    let r;
+    if (c.role === 'num') r = 0;
+    else if (c.role === 'note' || c.role === 'lab') r = 1 + (n - c.k);
+    else r = 1 + (n + 1) + ['up', 'acc', 'sld'].indexOf(c.role.replace('lab-', ''));
+    const col = c.s + 1;   // 0 for labels
+    // In portrait the notes read low to high from the left, like a keyboard.
+    const pr = c.role === 'note' || c.role === 'lab' ? 1 + c.k : r;
+    if (portrait) { c.el.style.gridRow = String(col + 1); c.el.style.gridColumn = String(pr + 1); }
+    else { c.el.style.gridRow = String(r + 1); c.el.style.gridColumn = String(col + 1); }
+  }
+  // Corners left empty in portrait for the labels' row and the numbers' column.
+}
+portraitQuery.addEventListener ? portraitQuery.addEventListener('change', () => { if (seqCells.length) layoutSeq(); })
+                               : portraitQuery.addListener(() => { if (seqCells.length) layoutSeq(); });
+
+function renderSeq() {
+  if (!seqCells.length) return;
+  const pat = currentPattern(), n = scaleNotes();
+  const probe = new AcidEngine(48000);
+  probe.setScale(ACID_SCALES[acidState.scale].mask); probe.key = acidState.key; probe.octave = acidState.octave;
+  for (const c of seqCells) {
+    const el = c.el;
+    // Sharps unless the key is one of the flat ones, so E minor has its F#.
+    if (c.role === 'lab') { el.textContent = noteName(probe.midiOf(c.k), ![5, 10, 3, 8, 1].includes(acidState.key)); continue; }
+    if (c.role.startsWith('lab')) continue;
+    el.classList.toggle('out', c.s >= pat.length);
+    el.classList.toggle('bar4', c.s % 4 === 0 && c.s > 0);
+    if (c.role === 'num') { el.classList.toggle('end', c.s === pat.length - 1); continue; }
+    const st = pat.steps[c.s], pos = rowOf(st.degree);
+    if (c.role === 'note') {
+      el.classList.toggle('on', !st.rest && pos.k === c.k);
+      el.classList.toggle('acc', !st.rest && pos.k === c.k && st.accent);
+    } else {
+      const set = c.role === 'up' ? !st.rest && pos.up : c.role === 'acc' ? st.accent : st.slide;
+      el.classList.toggle('set', set);
+      el.textContent = set ? c.role.toUpperCase() : '';
+    }
+  }
+}
+
+function showPlayhead(stepIndex) {
+  lastPlayhead = stepIndex;
+  for (let s = 0; s < 16; s++) for (const c of seqCols[s] || []) c.el.classList.toggle('ph', s === stepIndex);
+}
+
+/* Tapping a note sets the step there; tapping the note it already has makes it a
+   rest. UPP, ACC and SLD toggle. A step number sets where the loop ends. */
+seqEl.addEventListener('pointerdown', (e) => {
+  const el = e.target.closest('.sc');
+  if (!el) return;
+  e.preventDefault();
+  const s = +el.dataset.s, role = el.dataset.role, k = +el.dataset.k;
+  if (s < 0) return;
+  const pat = currentPattern(), st = pat.steps[s], n = scaleNotes(), pos = rowOf(st.degree);
+  if (role === 'num') { pat.length = s + 1; }
+  else if (role === 'note') {
+    if (!st.rest && pos.k === k) st.rest = true;
+    else { st.rest = false; st.degree = k + (pos.up && k < n ? n : 0); }
+  }
+  else if (role === 'up') {
+    if (st.rest) st.rest = false;
+    else st.degree = pos.up ? pos.k : Math.min(2 * n, pos.k + n);
+  }
+  else if (role === 'acc') st.accent = !st.accent;
+  else if (role === 'sld') st.slide = !st.slide;
+  sendAcidPattern();
+  if (role !== 'num' && !st.rest) send({ type: 'acidAudition', degree: st.degree, accent: st.accent });
+  renderSeq();
+  renderReadout();
+  save();
+});
+
+/* ---------- filter XY: cutoff across, env mod up ---------- */
+const xyEl = document.getElementById('xy');
+function showXY() {
+  const snd = acidSound();
+  const x = snd.cutoff * 100, y = (1 - snd.envMod) * 100;
+  document.getElementById('xyDot').style.left = x + '%';
+  document.getElementById('xyDot').style.top = y + '%';
+  document.getElementById('xyV').style.left = x + '%';
+  document.getElementById('xyH').style.top = y + '%';
+  document.getElementById('xyCut').textContent = Math.round(snd.cutoff * 100);
+  document.getElementById('xyEnv').textContent = Math.round(snd.envMod * 100);
+}
+mainFaderShows.push(showXY);
+let xyFinger = null;
+function xyFrom(e) {
+  const r = xyEl.getBoundingClientRect(), snd = acidSound();
+  snd.cutoff = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+  snd.envMod = Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height));
+  showXY(); sendAcidParams(); save();
+}
+xyEl.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  try { xyEl.setPointerCapture(e.pointerId); } catch (err) {}
+  xyFinger = e.pointerId; xyFrom(e);
+});
+xyEl.addEventListener('pointermove', (e) => { if (e.pointerId === xyFinger) xyFrom(e); });
+xyEl.addEventListener('pointerup', () => { xyFinger = null; });
+xyEl.addEventListener('pointercancel', () => { xyFinger = null; });
+
+const acidAfter = () => { sendAcidParams(); save(); };
+makeFader('acidResFader', 'resonance', acidSound, acidAfter);
+makeFader('acidDecayFader', 'decay', acidSound, acidAfter);
+makeFader('acidMixFader', 'mix', acidSound, acidAfter);
+
+/* ---------- the 303's page in the synth editor ---------- */
+function patternGroup() {
+  const sec = document.createElement('div');
+  sec.className = 'ed-group';
+  sec.innerHTML = '<h3>Mönster</h3>';
+  const row = document.createElement('div');
+  row.className = 'ed-resets';
+  const pat = currentPattern();
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button'; saveBtn.className = 'action'; saveBtn.textContent = 'Spara mönster som';
+  saveBtn.addEventListener('click', () => openSave('pattern'));
+  row.appendChild(saveBtn);
+  if (pat.user) {
+    const del = document.createElement('button');
+    del.type = 'button'; del.className = 'action danger'; del.textContent = 'Radera mönster';
+    del.addEventListener('click', () => {
+      if (!del.dataset.armed) { arm(del, true); return; }
+      arm(del, false);
+      acidPatterns.splice(+acidPatternSel.value, 1);
+      acidPatternSel.value = '0';
+      rebuildSoundMenus(); sendAcidPattern(); renderSeq(); renderReadout(); save(); renderEditor();
+    });
+    row.appendChild(del);
+  }
+  const note = document.createElement('p');
+  note.className = 'ed-note';
+  note.textContent = 'Nu: ' + title(pat.name) + ', ' + pat.length + ' steg. Ändringar i rutnätet sparas i mönstret direkt.';
+  sec.appendChild(note);
+  sec.appendChild(row);
+  return sec;
+}
+
+const secsFmt = (v) => (v < 0.1 ? Math.round(v * 1000) + ' ms' : v.toFixed(2) + ' s');
+EDIT.acid = [
+  { group: 'Röst', items: [
+    { kind: 'choice', label: 'Vågform', key: 'square', options: [[false, 'Såg'], [true, 'Fyrkant']] },
+    { kind: 'choice', label: 'Glide', key: 'glide', options: [[0, 'Kort'], [1, '303'], [2, 'Lång'], [3, 'Seg']] },
+    { label: 'Nivå', key: 'level', min: 0, max: 1.5, fmt: pct } ] },
+  { group: 'Filter', items: [
+    { label: 'Cutoff', key: 'cutoff', min: 0, max: 1, fmt: pct },
+    { label: 'Resonans', key: 'resonance', min: 0, max: 1, fmt: pct },
+    { label: 'Env mod', key: 'envMod', min: 0, max: 1, fmt: pct },
+    { label: 'Decay', key: 'decay', min: 0, max: 1, fmt: (v) => secsFmt(0.25 * Math.pow(2, v * 3.5)) } ] },
+  { group: 'Delay', fx: true, items: [
+    { label: 'Mix', key: 'mix', min: 0, max: 1, fmt: pct },
+    { label: 'Eko', key: 'echo', min: 0, max: 1, fmt: (v) => v <= 0.005 ? 'av' : secsFmt(0.2 * Math.pow(60, v)) },
+    { kind: 'choice', label: 'Tid', key: 'division', options: [[0, '1/8'], [1, '3/16'], [2, '1/4']] } ] },
+  { group: 'Trummor', items: [
+    { obj: 'acid', kind: 'choice', label: 'Lager', key: 'layer', options: [[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']] },
+    { obj: 'acid', kind: 'choice', label: 'Backbeat', key: 'backbeat', options: [['clap', 'Clap'], ['snare', 'Virvel']] },
+    { obj: 'acid', label: 'Pump', key: 'pump', min: 0, max: 1, fmt: pct },
+    { obj: 'acid', label: 'Nivå', key: 'drumLevel', min: 0, max: 1.5, fmt: pct } ] },
+  { group: 'Tonhöjd', items: [
+    { obj: 'acid', kind: 'choice', label: 'Oktav', key: 'octave', options: [[-1, '−1'], [0, '0'], [1, '+1'], [2, '+2']] } ] },
+  { group: 'Mönster', custom: patternGroup }
+];
+
+syncAcidMenus();
+buildSeq();
 
 // iOS still scrolls and zooms on touchmove unless it is cancelled outright.
 document.addEventListener('touchmove', (e) => {

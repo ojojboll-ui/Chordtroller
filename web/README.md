@@ -62,6 +62,40 @@ ackordgenerator på sex Juno-röster.
   lägger grundtonen under frasen.
 - Tempot delas med Omnins rytm.
 
+## 303
+
+Instrumentmenyn har ett tredje instrument: Chordtrollers 303, med sekvensern och
+rösten ur `AcidEngine.h` och `AcidVoice.h`.
+
+- **Rutnätet** till vänster är mönstret: sexton steg i sidled och skalans toner
+  från grundtonen upp till oktaven. Tryck i en ruta för att sätta tonen, tryck på
+  samma ton igen för paus. **UPP** lyfter steget en oktav, som 303:ans egna
+  oktavknappar, **ACC** ger accent och **SLD** glider in i nästa ton. Ett tryck
+  på ett stegnummer gör det till loopens sista steg; stegen efter finns kvar,
+  dämpade. När sekvensern står hörs varje ton som sätts. I stående läge går
+  stegen nedåt och tonerna i sidled, de låga till vänster.
+- **Plattan** är filtret: fingret styr cutoff i sidled och env mod på höjden,
+  och värdet ligger kvar när du släpper. Under den sitter resonans, decay och
+  delayns mix.
+- **Mönster, ljud, skala och tonart** väljs i menyerna. Skalorna är 303:ans:
+  moll, frygisk, mollpentatonisk, blues, dur och kromatisk. Tonerna sparas som
+  skalsteg, så skala och tonart flyttar hela linjen. **SLUMPA** gör en ny linje
+  på samma sätt som i Chordtroller: den lutar mot grundtonen och oktaven, pausar
+  ibland, glider bara in i toner och börjar på grundtonen. **RENSA** vill ha två
+  tryck. Mönstret ACID är basgången ur Rise of the Arpeggiators ACID-låt.
+- **Trummorna** är PumpKit ur Rise of the Arpeggiator (`Source/audio/Drums.h`),
+  stämd som ACID-låten, på 303:ans klocka. I synt edit väljer **Lager** hur mycket
+  som spelar, i samma ordning som spelet bygger upp en låt: 1 kick, 2 hihat på
+  offbeaten, 3 sextondelar och shaker, 4 öppen hihat och perc, 5 backbeat.
+  **Backbeat** är clap eller virvel, och **Pump** är hur mycket kicken trycker ner
+  303:an, som sidechainen i spelet.
+- **Synt edit** för 303:an har vågform, glide, nivå, cutoff, resonans, env mod,
+  decay, delayns mix, eko och tid, trummornas inställningar, oktav och mönstren.
+  **Spara mönster som** sparar mönstret under ett eget namn. Ljuden sparas som
+  för de andra instrumenten.
+- 303:an och trummorna går förbi rummet. En 303 är torr, och delayn står för
+  rymden.
+
 ## Synt edit
 
 Alla Omni-ljud är samma strängröst med olika rader ur `VoiceSpec.h`, och alla
@@ -102,6 +136,8 @@ Portat rakt av, med kommentarerna kvar:
   `CompEngine.h` — ackordljudet, rytmen och autobasen
 - `JunoVoice.h`, `JunoEngine.h`, `JunoPhrases.h`, `JunoChords.h` och
   `TempoDelay.h` — Juno, utan MIDI-ut
+- `AcidVoice.h` och `AcidEngine.h` — 303:an, utan MIDI-ut och värdsynk
+- PumpKit ur Rise of the Arpeggiators `Source/audio/Drums.h` — 303:ans trummor
 - `StringSet` i `ChordRing.h` — plattans tonordning, så svepet rullar som
   originalet: C3 E3 G2 C4 E4 G3 …
 - rummet är Freeverb med samma parametrar som `juce::Reverb` har i processorn
