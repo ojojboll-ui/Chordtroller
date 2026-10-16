@@ -144,6 +144,18 @@ body {
 }
 .metro[aria-pressed="true"] { color: var(--ink); border-color: var(--led); }
 .metro svg { width: 15px; height: 15px; }
+.transpose::before {
+  content: "Transpose";
+  align-self: center;
+  padding: 0 8px;
+  font: 600 11px/1 var(--font-key);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  border-right: 1px solid var(--line);
+}
+.transpose output { min-width: 5ch; cursor: pointer; }
+.transpose.moved output { color: var(--rec); }
 
 /* ---------- Juno loop recorder ---------- */
 .rec { position: relative; display: flex; align-items: center; gap: 6px; flex: none; padding-bottom: 5px; }
@@ -955,6 +967,11 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
         </select>
       </div>
       <div class="fx mix-only">
+        <div class="tempo transpose" role="group" aria-label="Transpose">
+          <button type="button" id="transDown" aria-label="Transpose down a semitone">&minus;</button>
+          <output id="transOut" aria-label="Transpose in semitones; tap to reset">0 st</output>
+          <button type="button" id="transUp" aria-label="Transpose up a semitone">+</button>
+        </div>
         <button class="action" id="mixReset" type="button">Reset mix</button>
       </div>
     </div>
@@ -2210,6 +2227,9 @@ class OmniDSP {
     this.lastChord = null;
     this.lastPhrase = { style: -1, variation: 0 };
     this.liveHeld = false;   // a finger on the phrase plate wins over the loop
+    // Transpose, in semitones, for everything with a pitch. What is played and
+    // recorded stays as pressed; only what sounds moves.
+    this.transpose = 0; this.lastComp = null;
     // The metronome: a short sine blip on every beat, higher on bar one.
     this.metroOn = false; this.metroEnv = 0; this.metroPhase = 0; this.metroInc = 0;
     this.metroCoef = Math.pow(0.001, 1 / (sr * 0.035));
@@ -2247,6 +2267,12 @@ class OmniDSP {
   }
 
   /* A volume fader's position as a gain: 0.8 is unity, the top is +8 dB. */
+  /* The comp's chord, moved by the transpose. */
+  setComp() {
+    const m = this.lastComp, t = this.transpose;
+    if (m) this.comp.setChord({ chord: m.chord.map((n) => n + t), bass: m.bass + t, fifth: m.fifth + t });
+  }
+
   static faderGain(v) { return v <= 0.01 ? 0 : Math.pow(10, (v - 0.8) * 2); }
 
   setTempo(bpm) {
@@ -2290,7 +2316,7 @@ class OmniDSP {
     v.cutoff = sw.cutoff; v.res = sw.res;
     v.envMod = m.envMod; v.setDecay(m.decay); v.square = m.square;
     v.setGlide([0.03, 0.06, 0.14, 0.30][m.glide] || 0.06);
-    a.setScale(m.scaleMask); a.key = m.key; a.octave = m.octave;
+    a.setScale(m.scaleMask); a.key = m.key + this.transpose; a.octave = m.octave;
     // Delay: a real dry/wet with equal power, always fed, so turning the mix
     // up brings in echoes of what has already played. The echo knob is how long
     // the repeats ring, from a fifth of a second to twelve, at any tempo.
@@ -2380,7 +2406,7 @@ class OmniDSP {
 
   applyLoopEvent(e) {
     if (e.kind === 'chord') {
-      this.juno.setChord(e.root, e.func, e.ext, this.genre);
+      this.juno.setChord(e.root + this.transpose, e.func, e.ext, this.genre);
       this.lastChord = { root: e.root, func: e.func, ext: e.ext, r: e.r, quality: e.quality };
     } else {
       if (this.liveHeld) return;
@@ -2460,7 +2486,14 @@ class OmniDSP {
     if (m.type === 'chord') this.notes = m.notes;
     else if (m.type === 'pluck') this.queue.push({ s: m.string, v: m.vel, w: Math.round(m.delay * this.sr), done: false });
     else if (m.type === 'fx') { this.chorus = m.chorus; this.verb.on = m.reverb; }
-    else if (m.type === 'compChord') this.comp.setChord(m);
+    else if (m.type === 'compChord') { this.lastComp = m; this.setComp(); }
+    else if (m.type === 'transpose') {
+      this.transpose = Math.max(-12, Math.min(12, m.semitones | 0));
+      this.setComp();
+      if (this.lastAcid) this.setAcid(this.lastAcid);
+      const c = this.lastChord;
+      if (c) this.juno.setChord(c.root + this.transpose, c.func, c.ext, this.genre);
+    }
     else if (m.type === 'rhythm') this.comp.configure(m);
     else if (m.type === 'hold') this.comp.setHold(m.on);
     else if (m.type === 'voice') this.setVoice(m.index);
@@ -2489,7 +2522,7 @@ class OmniDSP {
     }
     else if (m.type === 'junoChord') {
       this.genre = m.genre;
-      this.juno.setChord(m.root, m.func, m.ext, m.genre);
+      this.juno.setChord(m.root + this.transpose, m.func, m.ext, m.genre);
       this.lastChord = { root: m.root, func: m.func, ext: m.ext, r: m.r, quality: m.quality };
       this.record('chord', this.lastChord);
     }
@@ -2545,8 +2578,8 @@ class OmniDSP {
   }
 
   trigger(s, vel) {
-    const note = this.notes[s];
-    if (note === undefined) return;
+    if (this.notes[s] === undefined) return;
+    const note = this.notes[s] + this.transpose;
     const freq = 440 * Math.pow(2, (note - 69) / 12);
     this.alloc(s).start(freq, vel, this.decay, this.spec, s, ++this.stamp);
   }
@@ -2725,7 +2758,7 @@ function buildLayout(kind, tonic) {
 let ctx = null, node = null, dsp = null, ready = false;
 const fx = { chorus: true, reverb: true, chord: false, bass: false };
 const rhythm = { pattern: 'rock', bpm: 96 };
-const transport = { playing: false, metronome: false };
+const transport = { playing: false, metronome: false, transpose: 0 };
 let inst = 'omni';
 const junoState = { genre: 0, patch: 0, chorus: 1, bass: true, ext: false, hold: false, cutoff: 0.6, resonance: 0.15 };
 let phrase = null;   // { style, variation } under the finger, or held
@@ -2806,6 +2839,7 @@ async function startAudio() {
   MIX_CHANNELS.forEach(([ch]) => sendMixer(ch));
   send({ type: 'transport', playing: transport.playing, bpm: rhythm.bpm });
   send({ type: 'metronome', on: transport.metronome });
+  send({ type: 'transpose', semitones: transport.transpose });
   sendJunoParams();
   sendJunoChord();
   if (loopUI.events.length) send({ type: 'loopLoad', events: loopUI.events, bars: loopUI.bars, state: loopUI.state });
@@ -3085,6 +3119,7 @@ try {
     if (saved.loop) Object.assign(loopUI, saved.loop);
     if (saved.bpm) rhythm.bpm = saved.bpm;
     if (saved.metronome) transport.metronome = true;
+    if (saved.transpose) transport.transpose = saved.transpose;
     if (saved.layout) savedLayout = saved.layout;
     (saved.patterns || []).forEach((v, i) => {
       if (acidPatterns[i]) Object.assign(acidPatterns[i], v, { name: FACTORY_PATTERNS[i].name });
@@ -3101,7 +3136,7 @@ function save() {
       localStorage.setItem(STORE, JSON.stringify({ omni: sounds.omni, juno: sounds.juno, acid: sounds.acid, fx: fxState,
                                                     acidState, patterns: acidPatterns, drums: drumState,
                                                     mix: mixState, loop: loopUI, bpm: rhythm.bpm,
-                                                    metronome: transport.metronome,
+                                                    metronome: transport.metronome, transpose: transport.transpose,
                                                     layout: layoutSel.value }));
     } catch (e) {}
   }, 300);
@@ -4359,6 +4394,20 @@ for (const [ch, name] of MIX_CHANNELS) {
   });
   show();
 }
+/* Transpose: every instrument with a pitch, in semitones, an octave each way.
+   The keys and the plate keep their names; what sounds moves. */
+const transOut = document.getElementById('transOut');
+function setTranspose(st) {
+  transport.transpose = Math.max(-12, Math.min(12, st));
+  transOut.textContent = (transport.transpose > 0 ? '+' : transport.transpose < 0 ? '−' : '') + Math.abs(transport.transpose) + ' st';
+  transOut.parentElement.classList.toggle('moved', transport.transpose !== 0);
+  send({ type: 'transpose', semitones: transport.transpose });
+}
+document.getElementById('transDown').addEventListener('click', () => { setTranspose(transport.transpose - 1); save(); });
+document.getElementById('transUp').addEventListener('click', () => { setTranspose(transport.transpose + 1); save(); });
+transOut.addEventListener('click', () => { setTranspose(0); save(); });
+setTranspose(transport.transpose);
+
 document.getElementById('mixReset').addEventListener('click', () => {
   for (const [ch] of MIX_CHANNELS) { Object.assign(mixState[ch], { volume: 0.8, mute: false, filter: 0 }); sendMixer(ch); }
   mixShows.forEach((f) => f());

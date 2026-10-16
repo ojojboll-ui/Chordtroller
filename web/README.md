@@ -195,6 +195,12 @@ The MIXER tab has a channel per instrument: DRUMS, 303, JUNO and OMNICHORD.
   zone.
 - A double tap puts the volume or the filter back. **RESET MIX** puts every
   channel back.
+- **TRANSPOSE** moves everything with a pitch — the Omnichord's strings and
+  comp, the Juno and the 303 — up or down in semitones, an octave each way. The
+  buttons, the plate and the 303's grid keep their names; only what sounds
+  moves, and a loop recorded before plays in the new key. A tap on the value
+  sets it back to 0. The drums are not moved. It is not part of RESET MIX, and
+  it is kept in the browser.
 
 ## Synth edit
 
