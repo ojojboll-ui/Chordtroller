@@ -1,5 +1,5 @@
 <!doctype html><!--repo-only-->
-<html lang="sv"><!--repo-only-->
+<html lang="en"><!--repo-only-->
 <head><!--repo-only-->
 <meta charset="utf-8"><!--repo-only-->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"><!--repo-only-->
@@ -93,7 +93,10 @@ body {
    transport on the right. The second: how the instrument in front is set. */
 .bar > .tabs { order: 1; }
 .bar > .rhythm { order: 2; margin-left: auto; }
-.bar > .power { order: 2; }
+.bar > .row3 { order: 4; flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.row3 .filters { flex: 1 1 140px; flex-direction: row; gap: 6px; min-width: 0; }
+.row3 .fader { flex: 1 1 0; min-width: 0; height: 32px; padding: 0 8px; }
+.row3 .fader .flabel { letter-spacing: .06em; }
 .bar > .row2 { order: 3; flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; min-width: 0; }
 /* The instrument's own controls flow on from EDIT and the readout, one item at a
    time, so the row only wraps when it really is full. */
@@ -112,22 +115,40 @@ body {
 }
 .tab {
   font: 600 11px/1 var(--font-key);
-  letter-spacing: .07em;
+  letter-spacing: .05em;
   text-transform: uppercase;
   color: var(--ink-dim);
   background: none;
   border: 0;
   border-radius: 4px;
-  padding: 7px 9px;
+  padding: 7px 7px;
   cursor: pointer;
 }
 .tab[aria-selected="true"] { background: var(--key-major); color: var(--key-ink); }
 .tab.muted { text-decoration: line-through; opacity: .55; }
 .tab:focus-visible { outline: 2px solid var(--led); outline-offset: 1px; }
+/* The metronome carries the beat light: it blinks on every beat, gold on one. */
+.metro {
+  font: 600 11px/1 var(--font-key);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: var(--bezel);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 8px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.metro[aria-pressed="true"] { color: var(--ink); border-color: var(--led); }
+.metro svg { width: 15px; height: 15px; }
 
 /* ---------- Juno loop recorder ---------- */
-.rec { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: none; padding-bottom: 6px; }
-.rec > .toggle, .rec > .action { flex: 1 1 auto; justify-content: center; }
+.rec { position: relative; display: flex; align-items: center; gap: 6px; flex: none; padding-bottom: 5px; }
+.rec > .toggle, .rec > .action { justify-content: center; }
+.rec .toggle:disabled, .rec .action:disabled { opacity: .4; }
 .recbtn {
   font: 600 11px/1 var(--font-key);
   letter-spacing: .07em;
@@ -783,6 +804,11 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 /* Small phones: every button a little tighter, so each row holds what it held. */
 @media (max-width: 720px) {
   .bar .tab { padding: 7px 6px; font-size: 10px; letter-spacing: .04em; }
+  .bar .wide { display: none; }
+  [data-inst="acid"] #app { --side: 33%; }
+  .bar .metro { padding: 7px 6px; font-size: 10px; letter-spacing: .04em; gap: 5px; }
+  .row3 .fader { height: 30px; padding: 0 6px; }
+  .row3 .fader .flabel, .row3 .fader .fval { font-size: 10px; letter-spacing: .03em; }
   .bar .toggle, .bar .transport, .bar .action, .rec .toggle, .rec .action, .rec .recbtn { padding: 7px 6px; font-size: 10px; letter-spacing: .04em; gap: 5px; }
   .bar .transport { min-width: 4.4em; }
   .bar .sel { padding: 7px 18px 7px 6px; font-size: 10px; letter-spacing: .04em; background-position: right 5px center; }
@@ -829,130 +855,139 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
     <path d="M8 40a24 24 0 0 0 16 18"></path>
     <path d="M22 54l2 4-4 1"></path>
   </svg>
-  <h1>Vrid telefonen</h1>
-  <p>Chordtroller spelas liggande, som en Omnichord. Tolv ackordkolumner och sexton steg behöver bredden.</p>
+  <h1>Turn your phone</h1>
+  <p>Chordtroller is played sideways, like an Omnichord. Twelve chord columns and sixteen steps need the width.</p>
 </div>
 
 <div id="app">
   <header class="bar">
     <nav class="tabs" role="tablist" aria-label="Instrument">
-      <button class="tab" role="tab" type="button" data-tab="omni" aria-selected="true">Omni</button>
-      <button class="tab" role="tab" type="button" data-tab="juno" aria-selected="false">Juno</button>
+      <button class="tab" role="tab" type="button" data-tab="drums" aria-selected="true">Drums</button>
       <button class="tab" role="tab" type="button" data-tab="acid" aria-selected="false">303</button>
-      <button class="tab" role="tab" type="button" data-tab="drums" aria-selected="false">Trummor</button>
-      <button class="tab" role="tab" type="button" data-tab="mix" aria-selected="false">Mix</button>
+      <button class="tab" role="tab" type="button" data-tab="juno" aria-selected="false">Juno</button>
+      <button class="tab" role="tab" type="button" data-tab="omni" aria-selected="false">Omni<span class="wide">chord</span></button>
+      <button class="tab" role="tab" type="button" data-tab="mix" aria-selected="false">Mix<span class="wide">er</span></button>
     </nav>
     <div class="rhythm" role="group" aria-label="Transport">
-      <span class="beat" id="beatLed" aria-hidden="true"></span>
+      <button class="metro" id="metroBtn" type="button" aria-pressed="false" aria-label="Metronome"><span class="beat" id="beatLed" aria-hidden="true"></span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M5.5 1.5h5l3 13h-11z"/><path d="M8 11L12 3.5"/><path d="M4 11.5h8"/></svg></button>
       <button class="transport" id="transport" type="button" aria-pressed="false">Play</button>
       <div class="tempo">
-        <button type="button" id="tempoDown" aria-label="Långsammare">&minus;</button>
-        <output id="bpm" aria-label="Tempo i slag per minut">96</output>
-        <button type="button" id="tempoUp" aria-label="Snabbare">+</button>
+        <button type="button" id="tempoDown" aria-label="Slower">&minus;</button>
+        <output id="bpm" aria-label="Tempo in beats per minute">96</output>
+        <button type="button" id="tempoUp" aria-label="Faster">+</button>
       </div>
     </div>
-    <button class="power" id="power" type="button">Slå på ljudet</button>
     <div class="row2">
       <button class="transport" id="editBtn" type="button">Edit</button>
       <div class="readout" aria-live="polite">
-        <span class="label" id="readLabel">Ackord</span>
+        <span class="label" id="readLabel">Chord</span>
         <span id="chordName">C</span>
         <span id="subName" class="sub"></span>
       </div>
       <div class="fx omni-only">
-        <label class="sr" for="voice">Ljud</label>
+        <label class="sr" for="voice">Sound</label>
         <select id="voice" class="sel"></select>
-        <label class="sr" for="pattern">Rytm</label>
+        <label class="sr" for="pattern">Rhythm</label>
         <select id="pattern" class="sel">
           <option value="rock" selected>Rock</option>
           <option value="vamp">Vamp</option>
-          <option value="march">Marsch</option>
+          <option value="march">March</option>
           <option value="bossa">Bossa</option>
           <option value="swing">Swing</option>
-          <option value="waltz">Vals</option>
+          <option value="waltz">Waltz</option>
         </select>
-        <button class="toggle" id="chordToggle" type="button" aria-pressed="true">Ackordljud</button>
-        <button class="toggle" id="bassToggle" type="button" aria-pressed="true">Autobas</button>
+        <button class="toggle" id="chordToggle" type="button" aria-pressed="false">Chords</button>
+        <button class="toggle" id="bassToggle" type="button" aria-pressed="false">Auto bass</button>
       </div>
       <div class="fx juno-only">
         <label class="sr" for="genre">Genre</label>
         <select id="genre" class="sel"></select>
-        <label class="sr" for="patch">Ljud</label>
+        <label class="sr" for="patch">Sound</label>
         <select id="patch" class="sel"></select>
-        <button class="toggle" id="junoBassToggle" type="button" aria-pressed="true">Bas</button>
-        <button class="toggle" id="extToggle" type="button" aria-pressed="false">Utökad</button>
-        <button class="toggle" id="holdToggle" type="button" aria-pressed="false">Håll</button>
+        <button class="toggle" id="junoBassToggle" type="button" aria-pressed="true">Bass</button>
+        <button class="toggle" id="extToggle" type="button" aria-pressed="false">Extended</button>
       </div>
       <div class="fx acid-only">
-        <label class="sr" for="acidPatternSel">Mönster</label>
+        <label class="sr" for="acidPatternSel">Pattern</label>
         <select id="acidPatternSel" class="sel"></select>
-        <label class="sr" for="acidSound">Ljud</label>
+        <label class="sr" for="acidSound">Sound</label>
         <select id="acidSound" class="sel"></select>
-        <label class="sr" for="acidScale">Skala</label>
+        <label class="sr" for="acidScale">Scale</label>
         <select id="acidScale" class="sel"></select>
-        <label class="sr" for="acidKey">Tonart</label>
+        <label class="sr" for="acidKey">Key</label>
         <select id="acidKey" class="sel"></select>
-        <button class="action" id="acidRandom" type="button">Slumpa</button>
-        <button class="action" id="acidClear" type="button">Rensa</button>
+        <button class="action" id="acidRandom" type="button">Random</button>
+        <button class="action" id="acidClear" type="button">Clear</button>
       </div>
       <div class="fx drums-only">
-        <label class="sr" for="drumPatternSel">Trummönster</label>
+        <label class="sr" for="drumPatternSel">Drum pattern</label>
         <select id="drumPatternSel" class="sel"></select>
-        <button class="action" id="drumRandom" type="button">Slumpa</button>
-        <button class="action" id="drumClear" type="button">Rensa</button>
+        <button class="action" id="drumRandom" type="button">Random</button>
+        <button class="action" id="drumClear" type="button">Clear</button>
       </div>
       <div class="fx mix-only">
-        <button class="action" id="mixReset" type="button">Nollställ mixen</button>
+        <button class="action" id="mixReset" type="button">Reset mix</button>
+      </div>
+    </div>
+    <div class="row3 juno-only">
+      <button class="toggle" id="holdToggle" type="button" aria-pressed="false">Hold</button>
+      <div class="rec" id="rec" data-state="empty" role="group" aria-label="Loop recorder">
+        <button class="recbtn" id="loopRec" type="button">Rec</button>
+        <div class="seg" id="loopBars" role="group" aria-label="Loop length in bars">
+          <button type="button" data-bars="1" aria-pressed="false">1</button>
+          <button type="button" data-bars="2" aria-pressed="true">2</button>
+          <button type="button" data-bars="4" aria-pressed="false">4</button>
+        </div>
+        <button class="toggle" id="loopPlay" type="button" aria-pressed="false">Loop</button>
+        <button class="action" id="loopClear" type="button">Clear</button>
+        <div class="rec-bar" aria-hidden="true"><span id="loopProg"></span></div>
+      </div>
+      <div class="filters">
+        <div class="fader" id="cutoffFader" role="slider" tabindex="0" aria-label="Cutoff" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60">
+          <span class="fill"></span><span class="flabel">Cut<span class="wide">off</span></span><span class="fval">60</span>
+        </div>
+        <div class="fader" id="resFader" role="slider" tabindex="0" aria-label="Resonance" aria-valuemin="0" aria-valuemax="100" aria-valuenow="15">
+          <span class="fill"></span><span class="flabel">Res<span class="wide">onance</span></span><span class="fval">15</span>
+        </div>
       </div>
     </div>
   </header>
 
-  <div class="keys" id="keys" role="group" aria-label="Ackordknappar"></div>
-  <div class="drumgrid drums-only" id="drumGrid" role="grid" aria-label="Trummönster: tryck för slag, igen för accent, igen för tyst"></div>
+  <div class="keys" id="keys" role="group" aria-label="Chord buttons"></div>
+  <div class="drumgrid drums-only" id="drumGrid" role="grid" aria-label="Drum pattern: tap for a hit, again for an accent, again for silence"></div>
   <div class="mixer mix-only" id="mixer" role="group" aria-label="Mixer"></div>
-  <div class="seq acid-only" id="seq" role="grid" aria-label="303-mönster: tryck för att sätta en ton, igen för paus"></div>
+  <div class="seq acid-only" id="seq" role="grid" aria-label="303 pattern: tap to set a note, again for a rest"></div>
 
   <section class="editor" id="editor" hidden aria-labelledby="edName">
     <div class="ed-head">
-      <h2 class="ed-title"><span class="ed-kicker">Synt edit</span> <span id="edName">Omni</span></h2>
-      <button class="action" id="saveAs" type="button">Spara som</button>
-      <button class="transport done" id="edDone" type="button">Klar</button>
+      <h2 class="ed-title"><span class="ed-kicker">Synth edit</span> <span id="edName">Omni</span></h2>
+      <button class="action" id="saveAs" type="button">Save as</button>
+      <button class="transport done" id="edDone" type="button">Done</button>
     </div>
     <form class="ed-save" id="saveForm" hidden>
-      <label class="sr" for="presetName">Namn på ljudet</label>
-      <input id="presetName" type="text" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Namn">
-      <button class="transport done" type="submit">Spara</button>
-      <button class="action" id="saveCancel" type="button">Avbryt</button>
+      <label class="sr" for="presetName">Name</label>
+      <input id="presetName" type="text" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Name">
+      <button class="transport done" type="submit">Save</button>
+      <button class="action" id="saveCancel" type="button">Cancel</button>
     </form>
     <div class="ed-body" id="edBody"></div>
     <div class="ed-resets" hidden>
-      <button class="action" id="resetSound" type="button">Återställ ljud</button>
-      <button class="action" id="resetFx" type="button">Återställ effekter</button>
-      <button class="action danger" id="deleteSound" type="button">Radera ljud</button>
+      <button class="action" id="resetSound" type="button">Reset sound</button>
+      <button class="action" id="resetFx" type="button">Reset effects</button>
+      <button class="action danger" id="deleteSound" type="button">Delete sound</button>
     </div>
   </section>
 
   <div class="side">
-    <div class="plate omni-only" id="plate" role="application" aria-label="Strumplatta, dra fingret över strängarna"></div>
-    <div class="rec juno-only" id="rec" data-state="empty" role="group" aria-label="Inspelning">
-      <button class="recbtn" id="loopRec" type="button">Rec</button>
-      <div class="seg" id="loopBars" role="group" aria-label="Loopens längd i takter">
-        <button type="button" data-bars="1" aria-pressed="false">1</button>
-        <button type="button" data-bars="2" aria-pressed="true">2</button>
-        <button type="button" data-bars="4" aria-pressed="false">4</button>
-      </div>
-      <button class="toggle" id="loopPlay" type="button" aria-pressed="false">Loop</button>
-      <button class="action" id="loopClear" type="button">Radera</button>
-      <div class="rec-bar" aria-hidden="true"><span id="loopProg"></span></div>
-    </div>
-    <div class="phrases juno-only" id="phrases" role="application" aria-label="Frasplatta: håll på en stil för att spela den, sidled väljer variation"></div>
+    <div class="plate omni-only" id="plate" role="application" aria-label="Strum plate: drag a finger across the strings"></div>
+    <div class="phrases juno-only" id="phrases" role="application" aria-label="Phrase plate: hold a style to play it; across picks the variation"></div>
     <div class="pads acid-only">
-      <div class="xy" data-x="cutoff" data-y="resonance" role="application" aria-label="Filter: cutoff i sidled, resonans på höjden">
+      <div class="xy" data-x="cutoff" data-y="resonance" role="application" aria-label="Filter: cutoff across, resonance up">
         <span class="xy-h"></span><span class="xy-v"></span><span class="xy-dot"></span>
-        <span class="xy-lab xy-y">Resonans <b></b></span>
+        <span class="xy-lab xy-y">Resonance <b></b></span>
         <span class="xy-lab xy-x">Cutoff <b></b></span>
       </div>
-      <div class="xy" data-x="envMod" data-y="decay" role="application" aria-label="Envelope: env mod i sidled, decay på höjden">
+      <div class="xy" data-x="envMod" data-y="decay" role="application" aria-label="Envelope: env mod across, decay up">
         <span class="xy-h"></span><span class="xy-v"></span><span class="xy-dot"></span>
         <span class="xy-lab xy-y">Decay <b></b></span>
         <span class="xy-lab xy-x">Env mod <b></b></span>
@@ -964,23 +999,15 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
       </div>
     </div>
     <div class="drumside drums-only">
-      <div class="drumpad" id="drumPad" role="button" tabindex="0" aria-label="Spela det valda trumljudet">
+      <div class="drumpad" id="drumPad" role="button" tabindex="0" aria-label="Play the selected drum">
         <span class="dp-name" id="drumName">Kick</span>
-        <span class="dp-hint">Tryck för att spela</span>
+        <span class="dp-hint">Tap to play</span>
       </div>
       <div class="filters">
-        <div class="fader" id="drumTune" role="slider" tabindex="0" aria-label="Stämning"><span class="fill"></span><span class="flabel">Stämning</span><span class="fval"></span></div>
-        <div class="fader" id="drumDecay" role="slider" tabindex="0" aria-label="Längd"><span class="fill"></span><span class="flabel">Längd</span><span class="fval"></span></div>
-        <div class="fader" id="drumLevel" role="slider" tabindex="0" aria-label="Nivå"><span class="fill"></span><span class="flabel">Nivå</span><span class="fval"></span></div>
-        <div class="fader" id="drumPan" role="slider" tabindex="0" aria-label="Panorering"><span class="fill"></span><span class="flabel">Panorering</span><span class="fval"></span></div>
-      </div>
-    </div>
-    <div class="filters juno-only">
-      <div class="fader" id="cutoffFader" role="slider" tabindex="0" aria-label="Cutoff" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60">
-        <span class="fill"></span><span class="flabel">Cutoff</span><span class="fval">60</span>
-      </div>
-      <div class="fader" id="resFader" role="slider" tabindex="0" aria-label="Resonans" aria-valuemin="0" aria-valuemax="100" aria-valuenow="15">
-        <span class="fill"></span><span class="flabel">Resonans</span><span class="fval">15</span>
+        <div class="fader" id="drumTune" role="slider" tabindex="0" aria-label="Tune"><span class="fill"></span><span class="flabel">Tune</span><span class="fval"></span></div>
+        <div class="fader" id="drumDecay" role="slider" tabindex="0" aria-label="Decay"><span class="fill"></span><span class="flabel">Decay</span><span class="fval"></span></div>
+        <div class="fader" id="drumLevel" role="slider" tabindex="0" aria-label="Level"><span class="fill"></span><span class="flabel">Level</span><span class="fval"></span></div>
+        <div class="fader" id="drumPan" role="slider" tabindex="0" aria-label="Pan"><span class="fill"></span><span class="flabel">Pan</span><span class="fval"></span></div>
       </div>
     </div>
   </div>
@@ -1478,9 +1505,9 @@ class JunoEngine {
            lfoWave: 'sine', lfoDelay: 0, lfoPitch: 0, lfoFilter: 0 });
       JunoEngine._patches = [
         row('PAD',     0.80, 0.45, 0.30, 0, 0.50, 0.35, 0.45, 0.22, 0.30, 0.05, 0.55,  1.20, 0.80, 1.40, 0.55, 0.18, 0.35, 1),
-        row('STRÅKAR', 1.00, 0.00, 0.15, 0, 0.50, 0.00, 0.40, 0.10, 0.30, 0.20, 0.35,  1.00, 0.90, 1.00, 0.50, 0.10, 0.30, 2),
-        row('STÖT',    0.90, 0.25, 0.40, 0, 0.50, 0.10, 0.80, 0.60, 0.40, 0.05, 0.003, 0.25, 0.30, 0.18, 0.70, 0.30, 0.42, 1),
-        row('PLOCK',   0.20, 0.80, 0.20, 0, 0.30, 0.10, 0.60, 0.70, 0.40, 0.08, 0.002, 0.35, 0.00, 0.30, 0.75, 0.26, 0.45, 0),
+        row('STRINGS', 1.00, 0.00, 0.15, 0, 0.50, 0.00, 0.40, 0.10, 0.30, 0.20, 0.35,  1.00, 0.90, 1.00, 0.50, 0.10, 0.30, 2),
+        row('STAB',    0.90, 0.25, 0.40, 0, 0.50, 0.10, 0.80, 0.60, 0.40, 0.05, 0.003, 0.25, 0.30, 0.18, 0.70, 0.30, 0.42, 1),
+        row('PLUCK',   0.20, 0.80, 0.20, 0, 0.30, 0.10, 0.60, 0.70, 0.40, 0.08, 0.002, 0.35, 0.00, 0.30, 0.75, 0.26, 0.45, 0),
         row('BRASS',   1.00, 0.00, 0.20, 0, 0.50, 0.00, 0.50, 0.55, 0.35, 0.05, 0.06,  0.50, 0.70, 0.35, 0.60, 0.12, 0.30, 2)
       ];
     }
@@ -1532,32 +1559,32 @@ class JunoEngine {
       const V = (name, mode, spb, beats, hits, gate, dir = 0, strumMs = 0, contour = null, alternate = false) =>
         ({ name, mode, spb, beats, hits, gate, dir, strumMs, contour, alternate });
       JunoEngine._styles = [
-        { name: 'PULS', v: [
-          V('HEL', 'hold', 1, 4, 0, 0), V('HALV', 'pulse', 1, 2, at(0), 1.85),
-          V('FJÄRDEDEL', 'pulse', 1, 1, at(0), 0.85), V('ÅTTONDEL', 'pulse', 2, 1, at(0, 1), 0.80) ] },
+        { name: 'PULSE', v: [
+          V('WHOLE', 'hold', 1, 4, 0, 0), V('HALF', 'pulse', 1, 2, at(0), 1.85),
+          V('QUARTER', 'pulse', 1, 1, at(0), 0.85), V('EIGHTH', 'pulse', 2, 1, at(0, 1), 0.80) ] },
         { name: 'ARP 1/8', v: [
-          V('UPP', 'arp', 2, 1, E, 0.9, 1), V('NED', 'arp', 2, 1, E, 0.9, -1),
-          V('UPP/NED', 'arp', 2, 1, E, 0.9, 0), V('TRIOL', 'arp', 3, 1, E, 0.9, 1) ] },
+          V('UP', 'arp', 2, 1, E, 0.9, 1), V('DOWN', 'arp', 2, 1, E, 0.9, -1),
+          V('UP/DOWN', 'arp', 2, 1, E, 0.9, 0), V('TRIPLET', 'arp', 3, 1, E, 0.9, 1) ] },
         { name: 'ARP 1/16', v: [
-          V('UPP', 'arp', 4, 1, E, 0.85, 1), V('NED', 'arp', 4, 1, E, 0.85, -1),
-          V('UPP/NED', 'arp', 4, 1, E, 0.85, 0), V('TRIOL', 'arp', 6, 1, E, 0.85, 1) ] },
-        { name: 'RYTM', v: [
+          V('UP', 'arp', 4, 1, E, 0.85, 1), V('DOWN', 'arp', 4, 1, E, 0.85, -1),
+          V('UP/DOWN', 'arp', 4, 1, E, 0.85, 0), V('TRIPLET', 'arp', 6, 1, E, 0.85, 1) ] },
+        { name: 'RHYTHM', v: [
           V('o_o_', 'pulse', 4, 1, at(0, 2), 0.90), V('__o_', 'pulse', 4, 1, at(2), 0.80),
           V('oo_o', 'pulse', 4, 1, at(0, 1, 3), 0.70), V('o__o', 'pulse', 4, 1, at(0, 3), 0.90) ] },
-        { name: 'SYNKOP', v: [
+        { name: 'SYNCOP', v: [
           V('3-3-2', 'pulse', 4, 2, at(0, 3, 6), 1.20), V('3-2-3', 'pulse', 4, 2, at(0, 3, 5), 1.00),
-          V('KNUFF', 'pulse', 4, 2, at(1, 3, 6), 0.90), V('STUDS', 'pulse', 4, 2, at(0, 2, 5, 7), 0.80) ] },
+          V('PUSH', 'pulse', 4, 2, at(1, 3, 6), 0.90), V('BOUNCE', 'pulse', 4, 2, at(0, 2, 5, 7), 0.80) ] },
         { name: 'STRUM', v: [
-          V('ENKEL', 'strum', 1, 4, at(0), 3.80, 0, 28), V('RYTMISK', 'strum', 2, 2, at(0, 3), 1.40, 0, 22, null, true),
-          V('SNABB', 'strum', 1, 1, at(0), 0.90, 0, 12), V('LÅNGSAM', 'strum', 1, 4, at(0), 3.80, 0, 70) ] },
+          V('SIMPLE', 'strum', 1, 4, at(0), 3.80, 0, 28), V('RHYTHMIC', 'strum', 2, 2, at(0, 3), 1.40, 0, 22, null, true),
+          V('FAST', 'strum', 1, 1, at(0), 0.90, 0, 12), V('SLOW', 'strum', 1, 4, at(0), 3.80, 0, 70) ] },
         { name: 'GATE', v: [
-          V('1/16', 'pulse', 4, 1, E, 0.45), V('HACKA', 'pulse', 4, 2, at(0, 1, 3, 4, 5, 7), 0.45),
-          V('1/32', 'pulse', 8, 1, E, 0.45), V('PUNKT', 'pulse', 4, 4, at(0, 3, 6, 9, 12), 0.50) ] },
-        { name: 'FRAS', v: [
-          V('ENKEL', 'melody', 2, 4, E, 0.90, 0, 0, [0, 1, 2, 3, 4, 3, 2, 1]),
-          V('RYTMISK', 'melody', 4, 2, at(0, 3, 6), 1.30, 0, 0, [3, 2, 4, 3, 2, 4, 3, 2]),
-          V('STIGANDE', 'melody', 4, 1, E, 0.90, 0, 0, [0, 2, 1, 3, 2, 4, 3, 5]),
-          V('TOPP', 'melody', 2, 2, at(0, 1, 3), 1.20, 0, 0, [4, 3, 2, 4, 3, 2, 4, 3]) ] }
+          V('1/16', 'pulse', 4, 1, E, 0.45), V('CHOP', 'pulse', 4, 2, at(0, 1, 3, 4, 5, 7), 0.45),
+          V('1/32', 'pulse', 8, 1, E, 0.45), V('DOTS', 'pulse', 4, 4, at(0, 3, 6, 9, 12), 0.50) ] },
+        { name: 'PHRASE', v: [
+          V('SIMPLE', 'melody', 2, 4, E, 0.90, 0, 0, [0, 1, 2, 3, 4, 3, 2, 1]),
+          V('RHYTHMIC', 'melody', 4, 2, at(0, 3, 6), 1.30, 0, 0, [3, 2, 4, 3, 2, 4, 3, 2]),
+          V('RISING', 'melody', 4, 1, E, 0.90, 0, 0, [0, 2, 1, 3, 2, 4, 3, 5]),
+          V('TOP', 'melody', 2, 2, at(0, 1, 3), 1.20, 0, 0, [4, 3, 2, 4, 3, 2, 4, 3]) ] }
       ];
     }
     return JunoEngine._styles;
@@ -1675,7 +1702,7 @@ class JunoEngine {
   allOff() { this.hold = false; this.stop(); }
 
   /* Steps counted from the start of the phrase, not within the figure. A figure
-     one step long (FJÄRDEDEL, STRUM SNABB) is on step 0 for ever, so comparing
+     one step long (QUARTER, STRUM FAST) is on step 0 for ever, so comparing
      the step within the figure saw nothing new after the first hit. */
   absoluteStep() {
     return Math.floor(this.beatPos * this.variation(this.style).spb);
@@ -2153,6 +2180,9 @@ class OmniDSP {
     this.lastChord = null;
     this.lastPhrase = { style: -1, variation: 0 };
     this.liveHeld = false;   // a finger on the phrase plate wins over the loop
+    // The metronome: a short sine blip on every beat, higher on bar one.
+    this.metroOn = false; this.metroEnv = 0; this.metroPhase = 0; this.metroInc = 0;
+    this.metroCoef = Math.pow(0.001, 1 / (sr * 0.035));
     this.genre = 0;
     // The mixer.
     this.mix = {};
@@ -2170,9 +2200,9 @@ class OmniDSP {
   static voiceSpecs() {
     return [
       { name: 'OMNI',     wave: 'pulse', width: 0.35, filter: 7,  decayScale: 1.00, attack: 0.0020, detune: 3 },
-      { name: 'HARPA',    wave: 'saw',   width: 0,    filter: 5,  decayScale: 1.15, attack: 0.0030, detune: 2 },
-      { name: 'VIBRAFON', wave: 'sine',  width: 0,    filter: 12, decayScale: 1.60, attack: 0.0040, detune: 1.5 },
-      { name: 'GITARR',   wave: 'pulse', width: 0.20, filter: 9,  decayScale: 0.70, attack: 0.0015, detune: 4 }
+      { name: 'HARP',    wave: 'saw',   width: 0,    filter: 5,  decayScale: 1.15, attack: 0.0030, detune: 2 },
+      { name: 'VIBES', wave: 'sine',  width: 0,    filter: 12, decayScale: 1.60, attack: 0.0040, detune: 1.5 },
+      { name: 'GUITAR',   wave: 'pulse', width: 0.20, filter: 9,  decayScale: 0.70, attack: 0.0015, detune: 4 }
     ].map((v) => Object.assign(v, { level: 1 }));
   }
 
@@ -2286,20 +2316,23 @@ class OmniDSP {
   /* ---------- the Juno's loop ---------- */
 
   /* Live playing is recorded as it arrives, on the nearest sixteenth. A second
-     event of the same kind on the same sixteenth replaces the first. */
+     event of the same kind on the same sixteenth replaces the first. Each event
+     remembers the pass it was played in, so the loop does not play it back on
+     top of the finger that just played it. */
   record(kind, data) {
     const L = this.loop;
     if (L.state !== 'rec') return;
-    const len = L.bars * 16;
-    const pos = (((Math.round(this.beatPos * 4) - L.start) % len) + len) % len;
+    const len = L.bars * 16, rel = Math.round(this.beatPos * 4) - L.start;
+    const pos = ((rel % len) + len) % len;
     L.events = L.events.filter((e) => !(e.pos === pos && e.kind === kind));
-    L.events.push(Object.assign({ pos, kind }, data));
+    L.events.push(Object.assign({ pos, kind, pass: Math.floor(rel / len) }, data));
   }
 
   finishRec() {
     const L = this.loop;
+    for (const e of L.events) delete e.pass;
     L.events.sort((a, b) => a.pos - b.pos);
-    L.state = 'play';
+    L.state = L.events.length ? 'play' : 'empty';
     this.postLoop();
   }
 
@@ -2320,20 +2353,23 @@ class OmniDSP {
     this.post({ type: 'loopEvent', e });
   }
 
+  /* A new loop starts on a bar line, with what is sounding now as its first
+     step. Recording then goes round and round, playing back what is already
+     there and adding what is played over it, until REC is pressed again. */
   loopStep(six) {
     const L = this.loop, len = L.bars * 16;
-    if (L.state === 'armed' && six % 16 === 0) {
-      // Recording starts on a bar line, with what is sounding now as its first step.
-      L.start = six; L.state = 'rec'; L.events = [];
-      if (this.lastChord) L.events.push(Object.assign({ pos: 0, kind: 'chord' }, this.lastChord));
-      L.events.push(Object.assign({ pos: 0, kind: 'phrase' }, this.lastPhrase));
+    if (L.state === 'armed' && six % 16 === 0 && L.events.length) {
+      L.state = 'rec';   // over a loop that is there, on its own bar lines
       this.postLoop();
-    } else if (L.state === 'rec' && six - L.start >= len) {
-      this.finishRec();
+    } else if (L.state === 'armed' && six % 16 === 0) {
+      L.start = six; L.state = 'rec'; L.events = [];
+      if (this.lastChord) L.events.push(Object.assign({ pos: 0, kind: 'chord', pass: 0 }, this.lastChord));
+      L.events.push(Object.assign({ pos: 0, kind: 'phrase', pass: 0 }, this.lastPhrase));
+      this.postLoop();
     }
-    if (L.state === 'play') {
-      const pos = (((six - L.start) % len) + len) % len;
-      for (const e of L.events) if (e.pos === pos) this.applyLoopEvent(e);
+    if (L.state === 'play' || L.state === 'rec') {
+      const rel = six - L.start, pos = ((rel % len) + len) % len, pass = Math.floor(rel / len);
+      for (const e of L.events) if (e.pos === pos && !(L.state === 'rec' && e.pass === pass)) this.applyLoopEvent(e);
     }
   }
 
@@ -2354,6 +2390,10 @@ class OmniDSP {
       }
     }
     if (this.acid.running) this.acid.stepAt(six % this.acid.length);
+    if (this.metroOn && six % 4 === 0) {
+      this.metroEnv = 1; this.metroPhase = 0;
+      this.metroInc = (s16 === 0 ? 1760 : 1320) / this.sr;
+    }
     this.loopStep(six);
     this.post({ type: 'tick', six, acid: six % this.acid.length, drum: s16, loop: this.loopPos(six) });
   }
@@ -2379,6 +2419,7 @@ class OmniDSP {
     }
     else if (m.type === 'transport') { if (m.bpm) this.setTempo(m.bpm); this.setTransport(m.playing); }
     else if (m.type === 'mixer') this.setMixer(m);
+    else if (m.type === 'metronome') this.metroOn = !!m.on;
     else if (m.type === 'acidParams') this.setAcid(m);
     else if (m.type === 'acidPattern') { this.acid.pattern = m.steps; this.acid.length = m.length; this.acid.playhead %= m.length; }
     else if (m.type === 'acidAudition') this.acid.audition(m.degree, m.accent);
@@ -2402,13 +2443,17 @@ class OmniDSP {
       this.record('phrase', this.lastPhrase);
     }
     else if (m.type === 'loopArm') {
-      // Pressed while recording, REC ends the take early and keeps what was played.
-      if (this.loop.state === 'rec') this.finishRec();
-      else { this.loop.state = 'armed'; this.postLoop(); }
+      // REC again ends the take and keeps what was played. On a loop that is
+      // already there it records straight over it; an empty one waits for the bar.
+      const L = this.loop;
+      if (L.state === 'rec') this.finishRec();
+      else if (L.state === 'armed') { L.state = L.events.length ? 'play' : 'empty'; this.postLoop(); }
+      else if (L.events.length && this.playing) { L.state = 'rec'; this.postLoop(); }
+      else { L.state = 'armed'; this.postLoop(); }
     }
     else if (m.type === 'loopToggle') {
       const L = this.loop;
-      if (!L.events.length) return;
+      if (!L.events.length || L.state === 'rec') return;
       L.state = L.state === 'play' ? 'off' : 'play';
       if (L.state === 'off') this.juno.setPhrase(-1, 0);
       this.postLoop();
@@ -2487,8 +2532,14 @@ class OmniDSP {
       this.kit.process(df);
       df[0] *= 0.4; df[1] *= 0.4;
       this.channel(mix.drums, df);
-      L[i] = Math.tanh(fr[0] + af[0] + df[0]);
-      R[i] = Math.tanh(fr[1] + af[1] + df[1]);
+      let click = 0;
+      if (this.metroEnv > 1e-4) {
+        this.metroPhase += this.metroInc; if (this.metroPhase >= 1) this.metroPhase -= 1;
+        click = Math.sin(2 * Math.PI * this.metroPhase) * this.metroEnv * 0.3;
+        this.metroEnv *= this.metroCoef;
+      }
+      L[i] = Math.tanh(fr[0] + af[0] + df[0] + click);
+      R[i] = Math.tanh(fr[1] + af[1] + df[1] + click);
       if (this.playing) this.beatPos += this.bps;
     }
     if (q.length) {
@@ -2541,9 +2592,9 @@ const noteName = (m, sharps) => (sharps ? PC_SHARPS : PC_NAMES)[m % 12] + (Math.
 /* The OM-84's button order: twelve roots in fifths, Eb at the left. */
 const ROOTS = [['Eb', 3], ['Bb', 10], ['F', 5], ['C', 0], ['G', 7], ['D', 2],
                ['A', 9], ['E', 4], ['B', 11], ['F#', 6], ['C#', 1], ['G#', 8]];
-const ROWS = [{ cls: 'q0', suffix: '', name: 'dur' },
-              { cls: 'q1', suffix: 'm', name: 'moll' },
-              { cls: 'q2', suffix: '7', name: 'sept' }];
+const ROWS = [{ cls: 'q0', suffix: '', name: 'major' },
+              { cls: 'q1', suffix: 'm', name: 'minor' },
+              { cls: 'q2', suffix: '7', name: 'seventh' }];
 
 /* =============================================================================
    Audio plumbing
@@ -2551,9 +2602,9 @@ const ROWS = [{ cls: 'q0', suffix: '', name: 'dur' },
 
 let ctx = null, node = null, dsp = null, ready = false;
 const pending = [];
-const fx = { chorus: true, reverb: true, chord: true, bass: true };
+const fx = { chorus: true, reverb: true, chord: false, bass: false };
 const rhythm = { pattern: 'rock', bpm: 96 };
-const transport = { playing: false };
+const transport = { playing: false, metronome: false };
 let inst = 'omni';
 const junoState = { genre: 0, patch: 0, chorus: 1, bass: true, ext: false, hold: false, cutoff: 0.6, resonance: 0.15 };
 let phrase = null;   // { style, variation } under the finger, or held
@@ -2627,20 +2678,18 @@ async function startAudio() {
   sendDrumParams();
   MIX_CHANNELS.forEach(([ch]) => sendMixer(ch));
   send({ type: 'transport', playing: transport.playing, bpm: rhythm.bpm });
+  send({ type: 'metronome', on: transport.metronome });
   sendJunoParams();
   sendJunoChord();
   if (loopUI.events.length) send({ type: 'loopLoad', events: loopUI.events, bars: loopUI.bars, state: loopUI.state });
   else send({ type: 'loopBars', bars: loopUI.bars });
   updateChordSound();
-  ctx.onstatechange = updatePower;
-  updatePower();
 }
 
-const powerBtn = document.getElementById('power');
-function updatePower() { powerBtn.hidden = !!ctx && ctx.state === 'running'; }
-powerBtn.addEventListener('click', startAudio);
-// Touch only counts as a user gesture on release, so unlock there.
+// Sound starts with the first touch. Touch only counts as a user gesture on
+// release, so unlock there.
 document.addEventListener('pointerup', () => { if (!ctx || ctx.state !== 'running') startAudio(); });
+document.addEventListener('keydown', () => { if (!ctx || ctx.state !== 'running') startAudio(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && ctx && ctx.state !== 'running') ctx.resume(); });
 
 for (const [id, key] of [['chordToggle', 'chord'], ['bassToggle', 'bass']]) {
@@ -2682,11 +2731,19 @@ const transportBtn = document.getElementById('transport');
 function setTransport(on) {
   transport.playing = on;
   transportBtn.setAttribute('aria-pressed', String(on));
-  transportBtn.textContent = on ? 'Stopp' : 'Play';
+  transportBtn.textContent = on ? 'Stop' : 'Play';
   send({ type: 'transport', playing: on, bpm: rhythm.bpm });
   if (!on) onTick({ six: -1 });
 }
 transportBtn.addEventListener('click', () => setTransport(!transport.playing));
+
+const metroBtn = document.getElementById('metroBtn');
+function setMetronome(on) {
+  transport.metronome = on;
+  metroBtn.setAttribute('aria-pressed', String(on));
+  send({ type: 'metronome', on });
+}
+metroBtn.addEventListener('click', () => { setMetronome(!transport.metronome); save(); });
 
 const patternSel = document.getElementById('pattern');
 const bpmOut = document.getElementById('bpm');
@@ -2705,6 +2762,7 @@ function setTab(name) {
   inst = name;
   document.body.dataset.inst = name;
   for (const t of tabEls) t.setAttribute('aria-selected', String(t.dataset.tab === name));
+  try { localStorage.setItem(STORE + '-tab', name); } catch (e) {}
   if (chordState[name]) { current = chordState[name]; renderKeys(); }
   if (name === 'juno') renderPhrases();
   updateChordSound();
@@ -2734,7 +2792,7 @@ for (const [id, key] of [['junoBassToggle', 'bass'], ['extToggle', 'ext'], ['hol
     b.setAttribute('aria-pressed', String(junoState[key]));
     if (key === 'ext') { sendJunoChord(); renderReadout(); return; }
     sendJunoParams();
-    // Letting go of HÅLL with no finger on the plate stops the phrase.
+    // Letting go of HOLD with no finger on the plate stops the phrase.
     if (key === 'hold' && !junoState.hold && phraseFingers.size === 0) sendPhrase(null);
   });
 }
@@ -2813,8 +2871,8 @@ const FACTORY = {
 };
 FACTORY.acid = [
   { name: '303', cutoff: 0.30, resonance: 0.62, envMod: 0.55, decay: 0.45, square: false, glide: 1, level: 1, mix: 0.25, echo: 0.6, division: 1 },
-  { name: 'FYRKANT', cutoff: 0.24, resonance: 0.70, envMod: 0.65, decay: 0.35, square: true, glide: 1, level: 1, mix: 0.30, echo: 0.65, division: 1 },
-  { name: 'MJUK', cutoff: 0.40, resonance: 0.30, envMod: 0.30, decay: 0.70, square: false, glide: 2, level: 1, mix: 0.15, echo: 0.5, division: 2 }
+  { name: 'SQUARE', cutoff: 0.24, resonance: 0.70, envMod: 0.65, decay: 0.35, square: true, glide: 1, level: 1, mix: 0.30, echo: 0.65, division: 1 },
+  { name: 'SOFT', cutoff: 0.40, resonance: 0.30, envMod: 0.30, decay: 0.70, square: false, glide: 2, level: 1, mix: 0.15, echo: 0.5, division: 2 }
 ];
 const sounds = { omni: clone(FACTORY.omni), juno: clone(FACTORY.juno), acid: clone(FACTORY.acid) };
 const fxState = clone(FACTORY.fx);
@@ -2825,12 +2883,12 @@ const STORE = 'chordtroller-web-sounds-v1';
 
 // The scales Chordtroller's 303 steps through, minor first: acid lives there.
 const ACID_SCALES = [
-  { name: 'Moll', mask: [0, 2, 3, 5, 7, 8, 10] },
-  { name: 'Frygisk', mask: [0, 1, 4, 5, 7, 8, 10] },
-  { name: 'Mollpent', mask: [0, 3, 5, 7, 10] },
+  { name: 'Minor', mask: [0, 2, 3, 5, 7, 8, 10] },
+  { name: 'Phrygian', mask: [0, 1, 4, 5, 7, 8, 10] },
+  { name: 'Minor pent', mask: [0, 3, 5, 7, 10] },
   { name: 'Blues', mask: [0, 3, 5, 6, 7, 10] },
-  { name: 'Dur', mask: [0, 2, 4, 5, 7, 9, 11] },
-  { name: 'Kromatisk', mask: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }
+  { name: 'Major', mask: [0, 2, 4, 5, 7, 9, 11] },
+  { name: 'Chromatic', mask: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }
 ].map((sc) => ({ name: sc.name, tones: sc.mask, mask: sc.mask.reduce((m, pc) => m | (1 << pc), 0) }));
 
 const acidState = { key: 4, scale: 0, octave: 0, pump: 0.55 };
@@ -2845,7 +2903,7 @@ const FACTORY_PATTERNS = [
     acidNote(0), REST(), acidNote(7, true), acidNote(4),
     acidNote(0), acidNote(0, false, true), acidNote(7), REST(),
     acidNote(0, true), acidNote(4), acidNote(7, false, true), acidNote(0) ] },
-  { name: 'TOM', length: 16, steps: Array.from({ length: 16 }, REST) }
+  { name: 'EMPTY', length: 16, steps: Array.from({ length: 16 }, REST) }
 ];
 const acidPatterns = clone(FACTORY_PATTERNS);
 
@@ -2853,7 +2911,7 @@ const acidPatterns = clone(FACTORY_PATTERNS);
 
 // A row is written the way a drum machine's lights read: x a hit, X an accent.
 const drumRow = (str) => [...str].map((ch) => (ch === 'X' ? 2 : ch === 'x' ? 1 : 0));
-const DRUM_NAMES = ['Kick', 'Clap', 'Virvel', 'Hihat', 'Öppen hat', 'Shaker', 'Perc', 'Crash'];
+const DRUM_NAMES = ['Kick', 'Clap', 'Snare', 'Hihat', 'Open hat', 'Shaker', 'Perc', 'Crash'];
 const DRUM_FACTORY = [
   // The game's layers, all in: four on the floor, the off-beat hat, sixteenths, perc, clap.
   { name: 'HOUSE', steps: ['X...x...x...x...', '....x.......x...', '................', '.x.x.x.x.x.x.x.x',
@@ -2862,11 +2920,11 @@ const DRUM_FACTORY = [
                           '................', '.x.x.x.x.x.x.x.x', '.......x......x.', 'x...............'].map(drumRow) },
   { name: 'BREAK', steps: ['X.x.......xx....', '................', '....X..x.x..X...', 'x.x.x.x.x.x.x.x.',
                            '..............x.', '................', '..........x.....', '................'].map(drumRow) },
-  { name: 'TOM', steps: Array.from({ length: 8 }, () => new Array(16).fill(0)) }
+  { name: 'EMPTY', steps: Array.from({ length: 8 }, () => new Array(16).fill(0)) }
 ];
 const drumState = { pattern: 0, patterns: clone(DRUM_FACTORY), sel: 0, params: PumpKit.defaults() };
 
-const MIX_CHANNELS = [['omni', 'Omni'], ['juno', 'Juno'], ['acid', '303'], ['drums', 'Trummor']];
+const MIX_CHANNELS = [['drums', 'Drums'], ['acid', '303'], ['juno', 'Juno'], ['omni', 'Omnichord']];
 const mixState = {};
 for (const [ch] of MIX_CHANNELS) mixState[ch] = { volume: 0.8, mute: false, filter: 0 };
 
@@ -2879,18 +2937,22 @@ try {
     // follow the factory ones.
     for (const kind of ['omni', 'juno', 'acid']) {
       (saved[kind] || []).forEach((v, i) => {
-        if (sounds[kind][i]) Object.assign(sounds[kind][i], v);
+        if (sounds[kind][i]) Object.assign(sounds[kind][i], v, { name: FACTORY[kind][i].name });
         else if (v && v.user) sounds[kind].push(Object.assign(clone(FACTORY[kind][0]), v));
       });
     }
     Object.assign(fxState, saved.fx || {});
     Object.assign(acidState, saved.acidState || {});
-    if (saved.drums) Object.assign(drumState, saved.drums);
+    if (saved.drums) {
+      Object.assign(drumState, saved.drums);
+      DRUM_FACTORY.forEach((f, i) => { if (drumState.patterns[i]) drumState.patterns[i].name = f.name; });
+    }
     if (saved.mix) for (const ch in saved.mix) if (mixState[ch]) Object.assign(mixState[ch], saved.mix[ch]);
     if (saved.loop) Object.assign(loopUI, saved.loop);
     if (saved.bpm) rhythm.bpm = saved.bpm;
+    if (saved.metronome) transport.metronome = true;
     (saved.patterns || []).forEach((v, i) => {
-      if (acidPatterns[i]) Object.assign(acidPatterns[i], v);
+      if (acidPatterns[i]) Object.assign(acidPatterns[i], v, { name: FACTORY_PATTERNS[i].name });
       else if (v && v.user) acidPatterns.push(v);
     });
   }
@@ -2903,7 +2965,8 @@ function save() {
     try {
       localStorage.setItem(STORE, JSON.stringify({ omni: sounds.omni, juno: sounds.juno, acid: sounds.acid, fx: fxState,
                                                     acidState, patterns: acidPatterns, drums: drumState,
-                                                    mix: mixState, loop: loopUI, bpm: rhythm.bpm }));
+                                                    mix: mixState, loop: loopUI, bpm: rhythm.bpm,
+                                                    metronome: transport.metronome }));
     } catch (e) {}
   }, 300);
 }
@@ -2921,7 +2984,7 @@ function rebuildSoundMenus() {
     list.forEach((snd, i) => {
       const opt = new Option(title(snd.name), String(i));
       if (snd.user) {
-        if (!group) { group = document.createElement('optgroup'); group.label = 'Egna'; sel.appendChild(group); }
+        if (!group) { group = document.createElement('optgroup'); group.label = 'User'; sel.appendChild(group); }
         group.appendChild(opt);
       } else sel.appendChild(opt);
     });
@@ -2929,6 +2992,7 @@ function rebuildSoundMenus() {
   }
 }
 rebuildSoundMenus();
+patchSel.value = String(JunoEngine.patches().findIndex((p) => p.name === 'BRASS'));
 junoState.patch = +patchSel.value;
 
 function sendVoiceSpec() { send({ type: 'voiceSpec', spec: sounds.omni[+voiceSel.value] }); }
@@ -2942,44 +3006,44 @@ function title(name) { return name.charAt(0) + name.slice(1).toLowerCase(); }
 
 /* What the editor shows. `obj` says where a value lives: the sound being
    edited (default), the shared effects, or the Juno's live controls. */
-const ROOM = { group: 'Rum', fx: true, items: [
-  { obj: 'fx', label: 'Storlek', key: 'roomSize', min: 0, max: 1, fmt: pct },
-  { obj: 'fx', label: 'Dämpning', key: 'roomDamp', min: 0, max: 1, fmt: pct },
+const ROOM = { group: 'Room', fx: true, items: [
+  { obj: 'fx', label: 'Size', key: 'roomSize', min: 0, max: 1, fmt: pct },
+  { obj: 'fx', label: 'Damping', key: 'roomDamp', min: 0, max: 1, fmt: pct },
   { obj: 'fx', label: 'Mix', key: 'roomWet', min: 0, max: 1, fmt: pct } ] };
 
 const EDIT = {
   omni: [
     { group: 'Oscillator', items: [
-      { kind: 'choice', label: 'Vågform', key: 'wave', options: [['pulse', 'Puls'], ['saw', 'Såg'], ['sine', 'Sinus']] },
-      { label: 'Pulsbredd', key: 'width', min: 0.05, max: 0.95, fmt: pct, when: (o) => o.wave === 'pulse' },
+      { kind: 'choice', label: 'Waveform', key: 'wave', options: [['pulse', 'Pulse'], ['saw', 'Saw'], ['sine', 'Sine']] },
+      { label: 'Pulse width', key: 'width', min: 0.05, max: 0.95, fmt: pct, when: (o) => o.wave === 'pulse' },
       { label: 'Detune', key: 'detune', min: 0, max: 20, fmt: (v) => v.toFixed(1) + ' cent' } ] },
-    { group: 'Ton', items: [
-      { label: 'Ljushet', key: 'filter', min: 1, max: 24, log: true, fmt: (v) => '×' + v.toFixed(1) },
+    { group: 'Tone', items: [
+      { label: 'Brightness', key: 'filter', min: 1, max: 24, log: true, fmt: (v) => '×' + v.toFixed(1) },
       { label: 'Attack', key: 'attack', min: 0.0005, max: 0.05, log: true, fmt: secs },
-      { label: 'Ringtid', key: 'decayScale', min: 0.075, max: 2.5, log: true, fmt: (v) => (4 * v).toFixed(1) + ' s' },
-      { label: 'Nivå', key: 'level', min: 0, max: 2, fmt: pct } ] },
+      { label: 'Ring', key: 'decayScale', min: 0.075, max: 2.5, log: true, fmt: (v) => (4 * v).toFixed(1) + ' s' },
+      { label: 'Level', key: 'level', min: 0, max: 2, fmt: pct } ] },
     { group: 'Chorus', fx: true, items: [
-      { obj: 'fx', label: 'Hastighet', key: 'chorusRate', min: 0.05, max: 3, log: true, fmt: hz },
+      { obj: 'fx', label: 'Rate', key: 'chorusRate', min: 0.05, max: 3, log: true, fmt: hz },
       { obj: 'fx', label: 'Mix', key: 'chorusMix', min: 0, max: 1, fmt: pct } ] },
     ROOM
   ],
   juno: [
     { group: 'Oscillator', items: [
-      { label: 'Såg', key: 'saw', min: 0, max: 1, fmt: pct },
-      { label: 'Puls', key: 'pulse', min: 0, max: 1, fmt: pct },
+      { label: 'Saw', key: 'saw', min: 0, max: 1, fmt: pct },
+      { label: 'Pulse', key: 'pulse', min: 0, max: 1, fmt: pct },
       { label: 'Sub', key: 'sub', min: 0, max: 1, fmt: pct },
-      { label: 'Brus', key: 'noise', min: 0, max: 1, fmt: pct },
-      { label: 'Pulsbredd', key: 'pulseWidth', min: 0.05, max: 0.95, fmt: pct } ] },
+      { label: 'Noise', key: 'noise', min: 0, max: 1, fmt: pct },
+      { label: 'Pulse width', key: 'pulseWidth', min: 0.05, max: 0.95, fmt: pct } ] },
     { group: 'LFO', items: [
-      { kind: 'choice', label: 'Form', key: 'lfoWave', options: [['sine', 'Sin'], ['triangle', 'Tri'], ['square', 'Fyrk'], ['sh', 'S&H']] },
-      { label: 'Hastighet', key: 'lfoRate', min: 0.05, max: 20, log: true, fmt: hz },
-      { label: 'Fördröjning', key: 'lfoDelay', min: 0, max: 3, fmt: (v) => v < 0.005 ? 'av' : secs(v) },
-      { label: 'Tonhöjd', key: 'lfoPitch', min: 0, max: 2, fmt: (v) => v.toFixed(2) + ' ht' },
+      { kind: 'choice', label: 'Shape', key: 'lfoWave', options: [['sine', 'Sin'], ['triangle', 'Tri'], ['square', 'Sqr'], ['sh', 'S&H']] },
+      { label: 'Rate', key: 'lfoRate', min: 0.05, max: 20, log: true, fmt: hz },
+      { label: 'Fade in', key: 'lfoDelay', min: 0, max: 3, fmt: (v) => v < 0.005 ? 'off' : secs(v) },
+      { label: 'Pitch', key: 'lfoPitch', min: 0, max: 2, fmt: (v) => v.toFixed(2) + ' st' },
       { label: 'Filter', key: 'lfoFilter', min: 0, max: 1, fmt: pct },
       { label: 'PWM', key: 'pwmDepth', min: 0, max: 1, fmt: pct } ] },
     { group: 'Filter', items: [
       { obj: 'juno', label: 'Cutoff', key: 'cutoff', min: 0, max: 1, fmt: pct },
-      { obj: 'juno', label: 'Resonans', key: 'resonance', min: 0, max: 1, fmt: pct },
+      { obj: 'juno', label: 'Resonance', key: 'resonance', min: 0, max: 1, fmt: pct },
       { label: 'Envelope', key: 'envAmount', min: 0, max: 1, fmt: pct },
       { label: 'Key track', key: 'keyTrack', min: 0, max: 1, fmt: pct },
       { label: 'HPF', key: 'hpf', min: 0, max: 1, fmt: pct } ] },
@@ -2988,13 +3052,13 @@ const EDIT = {
       { label: 'Decay', key: 'decay', min: 0.02, max: 5, log: true, fmt: secs },
       { label: 'Sustain', key: 'sustain', min: 0, max: 1, fmt: pct },
       { label: 'Release', key: 'release', min: 0.02, max: 5, log: true, fmt: secs },
-      { label: 'Nivå', key: 'level', min: 0, max: 1, fmt: pct } ] },
+      { label: 'Level', key: 'level', min: 0, max: 1, fmt: pct } ] },
     { group: 'Delay', fx: true, items: [
-      { label: 'Mängd', key: 'delaySend', min: 0, max: 1, fmt: pct },
-      { label: 'Återkoppling', key: 'delayFeedback', min: 0, max: 0.85, fmt: pct },
-      { kind: 'choice', label: 'Tid', key: 'delayDivision', options: [[0, '1/8'], [1, '1/8.'], [2, '1/4']] } ] },
+      { label: 'Amount', key: 'delaySend', min: 0, max: 1, fmt: pct },
+      { label: 'Feedback', key: 'delayFeedback', min: 0, max: 0.85, fmt: pct },
+      { kind: 'choice', label: 'Time', key: 'delayDivision', options: [[0, '1/8'], [1, '1/8.'], [2, '1/4']] } ] },
     { group: 'Chorus', fx: true, items: [
-      { kind: 'choice', obj: 'juno', label: 'Läge', key: 'chorus', options: [[0, 'Av'], [1, 'I'], [2, 'II'], [3, 'I+II']] } ] },
+      { kind: 'choice', obj: 'juno', label: 'Mode', key: 'chorus', options: [[0, 'Off'], [1, 'I'], [2, 'II'], [3, 'I+II']] } ] },
     ROOM
   ]
 };
@@ -3112,7 +3176,7 @@ function renderEditor() {
     sec.className = 'ed-group';
     const h = document.createElement('h3');
     h.textContent = g.group;
-    if (g.fx) { const t = document.createElement('span'); t.className = 'fxtag'; t.textContent = 'Effekt'; h.appendChild(t); }
+    if (g.fx) { const t = document.createElement('span'); t.className = 'fxtag'; t.textContent = 'Effect'; h.appendChild(t); }
     sec.appendChild(h);
     for (const item of g.items) {
       if (item.when && !item.when(sound)) continue;
@@ -3148,7 +3212,7 @@ function openSave(what) {
   saveForm.hidden = false;
   const list = what === 'pattern' ? acidPatterns : sounds[inst];
   const own = list.filter((x) => x.user).length;
-  nameInput.value = (what === 'pattern' ? 'Mönster ' : 'Eget ') + (own + 1);
+  nameInput.value = (what === 'pattern' ? 'Pattern ' : 'User ') + (own + 1);
   nameInput.focus();
   nameInput.select();
 }
@@ -3165,7 +3229,7 @@ saveForm.addEventListener('submit', (e) => {
   e.preventDefault();
   if (saveWhat === 'pattern') {
     const fresh = clone(currentPattern());
-    fresh.name = (nameInput.value.trim() || 'Mönster').toUpperCase().slice(0, 16);
+    fresh.name = (nameInput.value.trim() || 'Pattern').toUpperCase().slice(0, 16);
     fresh.user = true;
     acidPatterns.push(fresh);
     rebuildSoundMenus();
@@ -3176,7 +3240,7 @@ saveForm.addEventListener('submit', (e) => {
     return;
   }
   const fresh = clone(soundBeingEdited());
-  fresh.name = (nameInput.value.trim() || 'Eget').toUpperCase().slice(0, 16);
+  fresh.name = (nameInput.value.trim() || 'User').toUpperCase().slice(0, 16);
   fresh.user = true;
   sounds[inst].push(fresh);
   const i = sounds[inst].length - 1;
@@ -3197,7 +3261,7 @@ function arm(btn, on) {
   clearTimeout(armTimer);
   if (!btn.dataset.idle) btn.dataset.idle = btn.textContent;
   btn.dataset.armed = on ? '1' : '';
-  btn.textContent = on ? 'Tryck igen' : btn.dataset.idle;
+  btn.textContent = on ? 'Tap again' : btn.dataset.idle;
   if (on) armTimer = setTimeout(() => arm(btn, false), 3000);
 }
 deleteBtn.addEventListener('click', () => {
@@ -3315,7 +3379,7 @@ function renderKeys() {
 
 /* The Juno reads the keys as functions, the way Chordtroller's ring hands over
    its seventh bank: major, minor, dominant, half-diminished. dur+7 and moll+7
-   reach for the genre's extended colour, as LB does; UTÖKAD does it for all. */
+   reach for the genre's extended colour, as LB does; EXTENDED does it for all. */
 const JUNO_FUNCTION = { maj: [0, false], min: [1, false], dom7: [2, false], dim: [3, false],
                         maj7: [0, true], min7: [1, true] };
 function junoChord() {
@@ -3326,7 +3390,7 @@ function sendJunoChord() { send({ type: 'junoChord', ...junoChord() }); }
 
 const subNameEl = document.getElementById('subName');
 function renderReadout() {
-  document.getElementById('readLabel').textContent = inst === 'acid' ? 'Tonart' : 'Ackord';
+  document.getElementById('readLabel').textContent = inst === 'acid' ? 'Key' : 'Chord';
   if (inst === 'acid') {
     chordNameEl.textContent = PC_NAMES[acidState.key];
     subNameEl.textContent = ACID_SCALES[acidState.scale].name + ' · ' + title(currentPattern().name);
@@ -3337,7 +3401,7 @@ function renderReadout() {
     chordNameEl.textContent = ROOTS[chordState.juno.r][0] + JunoEngine.shape(c.genre, c.func, c.ext)[0];
     subNameEl.textContent = phrase
       ? JunoEngine.styles()[phrase.style].name + ' · ' + JunoEngine.styles()[phrase.style].v[phrase.variation].name
-      : 'Håll på plattan';
+      : 'Hold on the plate';
   } else {
     chordNameEl.textContent = ROOTS[chordState.omni.r][0] + QUALITIES[chordState.omni.quality].suffix;
     subNameEl.textContent = '';
@@ -3359,7 +3423,7 @@ function sendCompChord() {
 
 /* Stopped, the chord section sounds while a chord button is held, the way the
    OM-84's does. Running, the rhythm plays the last chord pressed and the hold
-   does nothing. ACKORDLJUD and AUTOBAS switch each half off in both modes. */
+   does nothing. CHORDS and AUTO BASS switch each half off in both modes. */
 let holding = false;
 function updateChordSound() {
   const want = held.size > 0 && inst === 'omni';
@@ -3465,7 +3529,7 @@ plateEl.addEventListener('pointercancel', liftFinger);
 /* =============================================================================
    Juno phrase plate: eight styles down, four variations across. Holding a finger
    on a style plays it; sliding changes style or variation on the same beat;
-   lifting stops it unless HÅLL is on.
+   lifting stops it unless HOLD is on.
    ============================================================================= */
 
 const phrasesEl = document.getElementById('phrases');
@@ -3601,7 +3665,7 @@ clearBtn.addEventListener('click', () => {
 });
 
 /* ---------- the grid ----------
-   Rows are the scale from the root up to its octave; UPP lifts a step an octave,
+   Rows are the scale from the root up to its octave; UP lifts a step an octave,
    which is how a 303 reaches the second octave. */
 const seqEl = document.getElementById('seq');
 let seqCells = [];          // every cell, with its step and role
@@ -3633,7 +3697,7 @@ function buildSeq() {
     add('lab' + (k % n === 0 ? ' root' : ''), -1, 'lab', k, '');
     for (let s = 0; s < 16; s++) add('cell' + (k % n === 0 ? ' root' : ''), s, 'note', k);
   }
-  for (const [role, text] of [['up', 'UPP'], ['acc', 'ACC'], ['sld', 'SLD']]) {
+  for (const [role, text] of [['up', 'UP'], ['acc', 'ACC'], ['sld', 'SLD']]) {
     add('lab', -1, 'lab-' + role, 0, text);
     for (let s = 0; s < 16; s++) add('flag', s, role, 0, '');
   }
@@ -3642,7 +3706,7 @@ function buildSeq() {
 }
 
 function layoutSeq() {
-  const n = scaleNotes(), rows = n + 1 + 3;   // notes, then UPP ACC SLD
+  const n = scaleNotes(), rows = n + 1 + 3;   // notes, then UP ACC SLD
   seqEl.style.gridTemplateColumns = 'var(--lab, 30px) repeat(16, minmax(0, 1fr))';
   seqEl.style.gridTemplateRows = `14px repeat(${rows}, minmax(0, 1fr))`;
   for (const c of seqCells) {
@@ -3687,7 +3751,7 @@ function showPlayhead(stepIndex) {
 }
 
 /* Tapping a note sets the step there; tapping the note it already has makes it a
-   rest. UPP, ACC and SLD toggle. A step number sets where the loop ends. */
+   rest. UP, ACC and SLD toggle. A step number sets where the loop ends. */
 seqEl.addEventListener('pointerdown', (e) => {
   const el = e.target.closest('.sc');
   if (!el) return;
@@ -3754,17 +3818,17 @@ makeFader('acidMixFader', 'mix', acidSound, acidAfter);
 function patternGroup() {
   const sec = document.createElement('div');
   sec.className = 'ed-group';
-  sec.innerHTML = '<h3>Mönster</h3>';
+  sec.innerHTML = '<h3>Pattern</h3>';
   const row = document.createElement('div');
   row.className = 'ed-resets';
   const pat = currentPattern();
   const saveBtn = document.createElement('button');
-  saveBtn.type = 'button'; saveBtn.className = 'action'; saveBtn.textContent = 'Spara mönster som';
+  saveBtn.type = 'button'; saveBtn.className = 'action'; saveBtn.textContent = 'Save pattern as';
   saveBtn.addEventListener('click', () => openSave('pattern'));
   row.appendChild(saveBtn);
   if (pat.user) {
     const del = document.createElement('button');
-    del.type = 'button'; del.className = 'action danger'; del.textContent = 'Radera mönster';
+    del.type = 'button'; del.className = 'action danger'; del.textContent = 'Delete pattern';
     del.addEventListener('click', () => {
       if (!del.dataset.armed) { arm(del, true); return; }
       arm(del, false);
@@ -3776,7 +3840,7 @@ function patternGroup() {
   }
   const note = document.createElement('p');
   note.className = 'ed-note';
-  note.textContent = 'Nu: ' + title(pat.name) + ', ' + pat.length + ' steg. Ändringar i rutnätet sparas i mönstret direkt.';
+  note.textContent = 'Now: ' + title(pat.name) + ', ' + pat.length + ' steps. Changes in the grid are saved to the pattern right away.';
   sec.appendChild(note);
   sec.appendChild(row);
   return sec;
@@ -3784,24 +3848,24 @@ function patternGroup() {
 
 const secsFmt = (v) => (v < 0.1 ? Math.round(v * 1000) + ' ms' : v.toFixed(2) + ' s');
 EDIT.acid = [
-  { group: 'Röst', items: [
-    { kind: 'choice', label: 'Vågform', key: 'square', options: [[false, 'Såg'], [true, 'Fyrkant']] },
-    { kind: 'choice', label: 'Glide', key: 'glide', options: [[0, 'Kort'], [1, '303'], [2, 'Lång'], [3, 'Seg']] },
-    { label: 'Nivå', key: 'level', min: 0, max: 1.5, fmt: pct } ] },
+  { group: 'Voice', items: [
+    { kind: 'choice', label: 'Waveform', key: 'square', options: [[false, 'Saw'], [true, 'Square']] },
+    { kind: 'choice', label: 'Glide', key: 'glide', options: [[0, 'Short'], [1, '303'], [2, 'Long'], [3, 'Slow']] },
+    { label: 'Level', key: 'level', min: 0, max: 1.5, fmt: pct } ] },
   { group: 'Filter', items: [
     { label: 'Cutoff', key: 'cutoff', min: 0, max: 1, fmt: pct },
-    { label: 'Resonans', key: 'resonance', min: 0, max: 1, fmt: pct },
+    { label: 'Resonance', key: 'resonance', min: 0, max: 1, fmt: pct },
     { label: 'Env mod', key: 'envMod', min: 0, max: 1, fmt: pct },
     { label: 'Decay', key: 'decay', min: 0, max: 1, fmt: (v) => secsFmt(0.25 * Math.pow(2, v * 3.5)) } ] },
   { group: 'Delay', fx: true, items: [
     { label: 'Mix', key: 'mix', min: 0, max: 1, fmt: pct },
-    { label: 'Eko', key: 'echo', min: 0, max: 1, fmt: (v) => v <= 0.005 ? 'av' : secsFmt(0.2 * Math.pow(60, v)) },
-    { kind: 'choice', label: 'Tid', key: 'division', options: [[0, '1/8'], [1, '3/16'], [2, '1/4']] } ] },
+    { label: 'Echo', key: 'echo', min: 0, max: 1, fmt: (v) => v <= 0.005 ? 'off' : secsFmt(0.2 * Math.pow(60, v)) },
+    { kind: 'choice', label: 'Time', key: 'division', options: [[0, '1/8'], [1, '3/16'], [2, '1/4']] } ] },
   { group: 'Sidechain', items: [
-    { obj: 'acid', label: 'Pump från kicken', key: 'pump', min: 0, max: 1, fmt: pct } ] },
-  { group: 'Tonhöjd', items: [
-    { obj: 'acid', kind: 'choice', label: 'Oktav', key: 'octave', options: [[-1, '−1'], [0, '0'], [1, '+1'], [2, '+2']] } ] },
-  { group: 'Mönster', custom: patternGroup }
+    { obj: 'acid', label: 'Pump from kick', key: 'pump', min: 0, max: 1, fmt: pct } ] },
+  { group: 'Pitch', items: [
+    { obj: 'acid', kind: 'choice', label: 'Octave', key: 'octave', options: [[-1, '−1'], [0, '0'], [1, '+1'], [2, '+2']] } ] },
+  { group: 'Pattern', custom: patternGroup }
 ];
 
 syncAcidMenus();
@@ -3855,7 +3919,7 @@ function renderDrumGrid() {
     const v = steps[t][s];
     c.classList.toggle('on', v === 1);
     c.classList.toggle('acc', v === 2);
-    c.setAttribute('aria-label', DRUM_NAMES[t] + ' steg ' + (s + 1) + ': ' + ['tyst', 'slag', 'accent'][v]);
+    c.setAttribute('aria-label', DRUM_NAMES[t] + ' step ' + (s + 1) + ': ' + ['off', 'hit', 'accent'][v]);
   }));
   drumLabs.forEach((l, t) => l.classList.toggle('sel', t === drumState.sel));
 }
@@ -3991,13 +4055,13 @@ function drumFader(id, key, min, max, log, fmt) {
   show();
 }
 const semis = (v) => { const st = Math.round(12 * Math.log2(v)); return (st > 0 ? '+' : st < 0 ? '−' : '') + Math.abs(st) + ' st'; };
-const panFmt = (v) => (Math.abs(v) < 0.02 ? 'Mitt' : (v < 0 ? 'V ' : 'H ') + Math.round(Math.abs(v) * 100));
+const panFmt = (v) => (Math.abs(v) < 0.02 ? 'Centre' : (v < 0 ? 'L ' : 'R ') + Math.round(Math.abs(v) * 100));
 drumFader('drumTune', 'tune', 0.5, 2, true, semis);
 drumFader('drumDecay', 'decay', 0.3, 3, true, pct);
 drumFader('drumLevel', 'level', 0, 1.5, false, pct);
 drumFader('drumPan', 'pan', -1, 1, false, panFmt);
 
-/* ---------- pattern menu, SLUMPA and RENSA ---------- */
+/* ---------- pattern menu, RANDOM and CLEAR ---------- */
 const drumPatternSel = document.getElementById('drumPatternSel');
 function rebuildDrumMenu() {
   drumPatternSel.innerHTML = drumState.patterns.map((p, i) => '<option value="' + i + '">' + title(p.name) + '</option>').join('');
@@ -4079,7 +4143,7 @@ for (const [ch, name] of MIX_CHANNELS) {
   strip.innerHTML =
     '<h3>' + name + '</h3>' +
     '<button class="toggle mute" type="button" aria-pressed="false">Mute</button>' +
-    '<div class="vfader" role="slider" tabindex="0" aria-label="' + name + ' volym"><span class="vfill"></span><span class="unity"></span><span class="vval"></span></div>' +
+    '<div class="vfader" role="slider" tabindex="0" aria-label="' + name + ' volume"><span class="vfill"></span><span class="unity"></span><span class="vval"></span></div>' +
     '<div class="bip" role="slider" tabindex="0" aria-label="' + name + ' filter"><span class="bfill"></span><span class="bcenter"></span>' +
     '<span class="blab"><span>LP</span><b></b><span>HP</span></span></div>';
   mixerEl.appendChild(strip);
@@ -4097,8 +4161,8 @@ for (const [ch, name] of MIX_CHANNELS) {
     const p = (st.filter + 1) / 2;
     bfill.style.left = Math.min(p, 0.5) * 100 + '%';
     bfill.style.width = Math.abs(p - 0.5) * 100 + '%';
-    blab.textContent = st.filter === 0 ? 'Av' : Math.round(Math.abs(st.filter) * 100);
-    bip.setAttribute('aria-valuetext', st.filter === 0 ? 'Av' : (st.filter < 0 ? 'Lågpass ' : 'Högpass ') + blab.textContent);
+    blab.textContent = st.filter === 0 ? 'Off' : Math.round(Math.abs(st.filter) * 100);
+    bip.setAttribute('aria-valuetext', st.filter === 0 ? 'Off' : (st.filter < 0 ? 'Low-pass ' : 'High-pass ') + blab.textContent);
   };
   mixShows.push(show);
   const after = () => { show(); sendMixer(ch); };
@@ -4165,10 +4229,10 @@ loopClearBtn.addEventListener('click', () => {
 function renderLoop() {
   recEl.dataset.state = loopUI.state;
   document.getElementById('loopRec').setAttribute('aria-label',
-    { armed: 'Spelar in från nästa takt', rec: 'Spelar in, tryck för att sluta' }[loopUI.state] || 'Spela in');
+    { armed: 'Recording from the next bar', rec: 'Recording; tap to stop' }[loopUI.state] || 'Record');
   for (const b of loopBarBtns) b.setAttribute('aria-pressed', String(+b.dataset.bars === loopUI.bars));
   loopPlayBtn.setAttribute('aria-pressed', String(loopUI.state === 'play'));
-  loopPlayBtn.disabled = !loopUI.events.length;
+  loopPlayBtn.disabled = !loopUI.events.length || loopUI.state === 'rec';
   loopClearBtn.disabled = !loopUI.events.length && loopUI.state !== 'rec';
 }
 
@@ -4216,10 +4280,14 @@ document.addEventListener('touchmove', (e) => {
 }, { passive: false });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
-// Open on C major, the way the instrument wakes up.
+// Open on C major, the way the instrument wakes up, on the tab last used.
 document.body.dataset.inst = 'omni';
 bpmOut.textContent = rhythm.bpm;
+metroBtn.setAttribute('aria-pressed', String(transport.metronome));
 selectChord(3);
+let lastTab = 'drums';
+try { lastTab = localStorage.getItem(STORE + '-tab') || 'drums'; } catch (e) {}
+setTab(tabEls.some((t) => t.dataset.tab === lastTab) ? lastTab : 'drums');
 </script>
 </body><!--repo-only-->
 </html><!--repo-only-->
