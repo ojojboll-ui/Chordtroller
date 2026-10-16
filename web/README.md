@@ -1,11 +1,24 @@
 # Chordtroller Omni — webb
 
-Omnichord-motorn på en pekskärm, för att prova på en iPhone i Safari. En fil,
-inget byggsteg: `index.html`.
+Omnichord-motorn på en pekskärm, för att prova på en iPhone i Safari, som en
+liten groovebox: Omni, Juno, 303, trummor och en mixer, var och en under sin
+egen flik, på samma klocka. En fil, inget byggsteg: `index.html`.
 
 Kör lokalt med valfri statisk server, till exempel `python3 -m http.server` i den
 här mappen. Öppna inte filen direkt från disk, för då vägrar webbläsaren ladda
 AudioWorkleten och ljudet faller tillbaka på huvudtråden.
+
+## Groovebox
+
+- **Flikarna** uppe till vänster — OMNI, JUNO, 303, TRUMMOR och MIX — byter bara
+  vad som ligger framme. Det som spelar fortsätter spela, så man kan lägga en
+  trumslinga, gå till 303:an och skruva, och sedan spela ackord på Omnin.
+- **PLAY** är gemensam för allt: trummorna, 303:an, Omnins komp och Junons loop
+  startar tillsammans på ettan i första takten och stannar tillsammans. Tempot
+  (40–220 BPM i steg om 4) delas också, och lampan bredvid blinkar på varje slag
+  och lyser gult på ettan.
+- Omni och Juno har var sitt ackord. Ett ackord som spelas på Omni-fliken
+  ändrar inte Junons, och tvärtom.
 
 ## Spela
 
@@ -18,16 +31,16 @@ AudioWorkleten och ljudet faller tillbaka på huvudtråden.
   `CompVoice` som röst — en liten orgel av tre sinusar, en sluten stämföring
   strax under plattans mitt och grundtonen som bas. Byter du ackord med fingret
   kvar stäms den om utan nytt anslag.
-- **Rytmen** startas och stoppas med START. Sex figurer ur `CompEngine.h` —
-  ROCK, VAMP, MARSCH, BOSSA, SWING och VALS — spelar trummor, ackordstötar och
+- **Kompet** går när PLAY är på. Sex figurer ur `CompEngine.h` — ROCK, VAMP,
+  MARSCH, BOSSA, SWING och VALS, i menyn bredvid ljudet — spelar ackordstötar och
   en autobas som växlar mellan grundton och kvint, på det senast tryckta
-  ackordet. Ackordet behöver inte hållas medan rytmen går. Tempot går i steg om
-  4 mellan 40 och 220 BPM, och lampan bredvid START blinkar på varje slag och
-  lyser gult på ettan.
+  ackordet. Ackordet behöver inte hållas medan kompet går. Figurernas trummor är
+  borttagna; trumfliken står för trummorna.
 - **ACKORDLJUD** och **AUTOBAS** slår av ackorddelen och basen var för sig, i
-  både manuellt läge och rytmen. Med båda av spelar rytmen bara trummor.
+  både manuellt läge och kompet.
 - Hela kompet går förbi chorusen precis som i Chordtroller och möter
-  strängarna i rummet.
+  strängarna i rummet. Chorusen och rummet regleras med sina mixrattar i synt
+  edit.
 - **Strumplattan** har tretton strängar, de lägsta längst ner. Ett finger som
   sätts ner plockar strängen under sig, och ett finger som dras plockar varje
   sträng det passerar. Flera fingrar går bra.
@@ -39,13 +52,12 @@ AudioWorkleten och ljudet faller tillbaka på huvudtråden.
   hålls upprätt får en skärm som ber den vridas; webben kan inte vrida den själv.
   På en dator visas alltid instrumentet.
 - Plattan till höger går hela höjden. Kontrollerna sitter i två rader över
-  knapparna till vänster, likadant för alla instrument: först instrument, EDIT,
-  vad som spelar och tempot, sedan instrumentets inställningar.
+  knapparna till vänster, likadant för alla flikar: först flikarna, PLAY och
+  tempot, sedan EDIT, vad som spelar och instrumentets inställningar.
 
 ## Juno
 
-Instrumentmenyn uppe till vänster byter till Juno: Chordtrollers
-ackordgenerator på sex Juno-röster.
+JUNO-fliken är Chordtrollers ackordgenerator på sex Juno-röster.
 
 - **Ackordknapparna** läses som funktioner, som när ringen lämnar över sin
   septimbank: dur, moll, 7 (dominant) och dur+moll (halvminskad). Genren
@@ -63,14 +75,30 @@ ackordgenerator på sex Juno-röster.
   under självsvängning. Patchens egen envelop ligger ovanpå, så ett plock
   hörs även med cutoff i botten.
 - **Ljudet** är patcharna PAD, STRÅKAR, STÖT, PLOCK och BRASS, med var sin
-  delay ur `TempoDelay.h`. **Chorus** har lägena av, I, II och I+II, och **BAS**
-  lägger grundtonen under frasen.
-- Tempot delas med Omnins rytm.
+  delay ur `TempoDelay.h`. **BAS** lägger grundtonen under frasen. Chorusen,
+  med lägena av, I, II och I+II, ligger i synt edit.
+- Frasen går på den gemensamma klockan när PLAY är på, och på en egen när den
+  står.
+
+### Spela in
+
+Raden över plattan spelar in det man gör på Junon — ackordknapparna och
+plattan — som en loop.
+
+- **REC** startar PLAY om den inte redan går, blinkar till nästa takt och
+  spelar sedan in i en, två eller fyra takter (**1 2 4**). Det som klingar när
+  inspelningen börjar ligger på första steget. Allt läggs på närmaste
+  sextondel. Ett tryck på REC under inspelningen avslutar den tidigare.
+- När takterna är slut spelar loopen upp det som spelades, om och om igen,
+  medan man går till andra flikar. Ackordknapparna och plattan följer med.
+- Ett finger på plattan går före loopen så länge det ligger kvar.
+- **LOOP** slår av och på uppspelningen, och **RADERA** tar bort loopen; den
+  vill ha två tryck. Loopen sparas i webbläsaren.
 
 ## 303
 
-Instrumentmenyn har ett tredje instrument: Chordtrollers 303, med sekvensern och
-rösten ur `AcidEngine.h` och `AcidVoice.h`.
+303-fliken är Chordtrollers 303, med sekvensern och rösten ur `AcidEngine.h`
+och `AcidVoice.h`. Den spelar när PLAY är på.
 
 - **Rutnätet** till vänster är mönstret: sexton steg i sidled och skalans toner
   från grundtonen upp till oktaven. Tryck i en ruta för att sätta tonen, tryck på
@@ -88,18 +116,47 @@ rösten ur `AcidEngine.h` och `AcidVoice.h`.
   på samma sätt som i Chordtroller: den lutar mot grundtonen och oktaven, pausar
   ibland, glider bara in i toner och börjar på grundtonen. **RENSA** vill ha två
   tryck. Mönstret ACID är basgången ur Rise of the Arpeggiators ACID-låt.
-- **Trummorna** är PumpKit ur Rise of the Arpeggiator (`Source/audio/Drums.h`),
-  stämd som ACID-låten, på 303:ans klocka. I synt edit väljer **Lager** hur mycket
-  som spelar, i samma ordning som spelet bygger upp en låt: 1 kick, 2 hihat på
-  offbeaten, 3 sextondelar och shaker, 4 öppen hihat och perc, 5 backbeat.
-  **Backbeat** är clap eller virvel, och **Pump** är hur mycket kicken trycker ner
-  303:an, som sidechainen i spelet.
 - **Synt edit** för 303:an har vågform, glide, nivå, cutoff, resonans, env mod,
-  decay, delayns mix, eko och tid, trummornas inställningar, oktav och mönstren.
+  decay, delayns mix, eko och tid, oktav och mönstren. **Pump från kicken** är
+  hur mycket trumfliken kick trycker ner 303:an, som sidechainen i Rise of the
+  Arpeggiator.
   **Spara mönster som** sparar mönstret under ett eget namn. Ljuden sparas som
   för de andra instrumenten.
-- 303:an och trummorna går förbi rummet. En 303 är torr, och delayn står för
-  rymden.
+- 303:an går förbi rummet. En 303 är torr, och delayn står för rymden.
+
+## Trummor
+
+TRUMMOR-fliken är PumpKit ur Rise of the Arpeggiator (`Source/audio/Drums.h`),
+stämd som spelets ACID-låt, med en stegsekvenser på åtta spår.
+
+- **Rutnätet** har ett spår per ljud — KICK, CLAP, VIRVEL, HIHAT, ÖPPEN HAT,
+  SHAKER, PERC och CRASH — och sexton steg. Ett tryck i en ruta ger slag, nästa
+  accent och nästa tyst. Drar man vidare från rutan får de rutor fingret går
+  över samma värde, så en rad hihat är ett drag. När PLAY står hörs varje slag
+  som sätts.
+- **Höger sida** är ljudet för spåret som rördes senast: en stor platta som
+  spelar det, och **STÄMNING** (en oktav ner till en oktav upp, i halvtoner),
+  **LÄNGD**, **NIVÅ** och **PANORERING**. Spårnamnet i rutnätet väljer och
+  spelar spåret. Ett dubbeltryck på ett reglage ställer tillbaka det.
+- Den öppna hihaten tystnar när den slutna slår, som på en 808.
+- **Mönstren** HOUSE, ACID, BREAK och TOM väljs i menyn. HOUSE är alla spelets
+  lager på en gång. **SLUMPA** gör ett nytt mönster på det aktiva: kick på
+  fyra med en knuff ibland, backbeat på clap eller virvel, hihat i en av tre
+  tätheter och resten strött. **RENSA** vill ha två tryck.
+- Trummorna går förbi rummet.
+
+## Mix
+
+MIX-fliken har en kanal per instrument: OMNI, JUNO, 303 och TRUMMOR.
+
+- **MUTE** tystar kanalen, och fliken stryks över så att det syns även från de
+  andra flikarna.
+- **Volymen** dras upp och ner. Strecket vid 80 % är 0 dB, och toppen är +8 dB.
+- **Filtret** under är ett DJ-filter: till vänster om mitten ett lågpass som
+  stänger mot 35 Hz, till höger ett högpass som öppnar mot 14 kHz, med en
+  resonans som växer ju längre det går. Mitten är av, med en liten död zon.
+- Ett dubbeltryck ställer tillbaka volymen eller filtret. **NOLLSTÄLL MIXEN**
+  ställer tillbaka alla kanaler.
 
 ## Synt edit
 
@@ -137,12 +194,12 @@ Portat rakt av, med kommentarerna kvar:
 
 - `PluckVoice.h` — strängrösten, OMNI-klangen ur `VoiceSpec.h`
 - `Ensemble.h` — chorusen
-- `CompVoice.h`, `DrumKit.h` och figurerna, klockan och stämföringen ur
-  `CompEngine.h` — ackordljudet, rytmen och autobasen
+- `CompVoice.h` och figurerna och stämföringen ur `CompEngine.h` —
+  ackordljudet, kompet och autobasen, utan figurernas trummor
 - `JunoVoice.h`, `JunoEngine.h`, `JunoPhrases.h`, `JunoChords.h` och
   `TempoDelay.h` — Juno, utan MIDI-ut
 - `AcidVoice.h` och `AcidEngine.h` — 303:an, utan MIDI-ut och värdsynk
-- PumpKit ur Rise of the Arpeggiators `Source/audio/Drums.h` — 303:ans trummor
+- PumpKit ur Rise of the Arpeggiators `Source/audio/Drums.h` — trumfliken
 - `StringSet` i `ChordRing.h` — plattans tonordning, så svepet rullar som
   originalet: C3 E3 G2 C4 E4 G3 …
 - rummet är Freeverb med samma parametrar som `juce::Reverb` har i processorn
@@ -154,6 +211,9 @@ strängen det står på, och en liten hysteres på strängkanterna gör att ett 
 som vilar på en linje inte fladdrar. Strängar som passeras inom ett och samma
 pekhändelse sprids ut över den tid händelsen täckte, och ett snabbt svep plockar
 lättare som i `strumVelocity`.
+
+Nytt för grooveboxen: den gemensamma klockan, trumsekvensern, mixern med
+DJ-filtret och Junons loop.
 
 Ringlängden är fast på fyra sekunder (LT släppt) och volymen på full (RT inne).
 
