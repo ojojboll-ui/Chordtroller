@@ -2635,7 +2635,6 @@ const ROWS = [{ cls: 'q0', suffix: '', name: 'major' },
    ============================================================================= */
 
 let ctx = null, node = null, dsp = null, ready = false;
-const pending = [];
 const fx = { chorus: true, reverb: true, chord: false, bass: false };
 const rhythm = { pattern: 'rock', bpm: 96 };
 const transport = { playing: false, metronome: false };
@@ -2647,8 +2646,9 @@ function makeChord(r, quality, rows) { return { r, quality, rows, notes: buildSt
 const chordState = { omni: makeChord(3, 'maj', new Set([0])), juno: makeChord(3, 'maj', new Set([0])) };
 let current = chordState.omni;
 
+const earlyPlucks = [];   // the touch that starts the sound is heard too
 function send(m) {
-  if (!ready) { if (m.type !== 'pluck') pending.push(m); return; }
+  if (!ready) { if (m.type === 'pluck') earlyPlucks.push({ m, t: performance.now() }); return; }
   if (node && node.port) node.port.postMessage(m); else if (dsp) dsp.message(m);
 }
 
@@ -2668,17 +2668,21 @@ class OmniProcessor extends AudioWorkletProcessor {
 registerProcessor('omni', OmniProcessor);`;
 }
 
+// Older iOS only unlocks output once a buffer has actually played.
+function playSilence() {
+  const b = ctx.createBufferSource();
+  b.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+  b.connect(ctx.destination); b.start(0);
+}
+
 async function startAudio() {
-  if (ctx) { if (ctx.state !== 'running') ctx.resume(); return; }
+  if (ctx) { if (ctx.state !== 'running') { ctx.resume(); playSilence(); } return; }
   try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (e) {}
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
   const AC = window.AudioContext || window.webkitAudioContext;
   ctx = new AC({ latencyHint: 'interactive' });
   ctx.resume();
-  // Older iOS only unlocks output once a buffer has actually played.
-  const unlock = ctx.createBufferSource();
-  unlock.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
-  unlock.connect(ctx.destination); unlock.start(0);
+  playSilence();
 
   try {
     const url = URL.createObjectURL(new Blob([workletSource()], { type: 'application/javascript' }));
@@ -2700,7 +2704,6 @@ async function startAudio() {
   ready = true;
   send({ type: 'chord', notes: chordState.omni.notes });
   send({ type: 'fx', chorus: fx.chorus, reverb: fx.reverb });
-  pending.length = 0;
   sendCompChord();
   sendRhythm();
   sendVoiceSpec();
@@ -2718,12 +2721,18 @@ async function startAudio() {
   if (loopUI.events.length) send({ type: 'loopLoad', events: loopUI.events, bars: loopUI.bars, state: loopUI.state });
   else send({ type: 'loopBars', bars: loopUI.bars });
   updateChordSound();
+  const now = performance.now();
+  for (const p of earlyPlucks) if (now - p.t < 500) send(p.m);
+  earlyPlucks.length = 0;
 }
 
-// Sound starts with the first touch. Touch only counts as a user gesture on
-// release, so unlock there.
-document.addEventListener('pointerup', () => { if (!ctx || ctx.state !== 'running') startAudio(); });
-document.addEventListener('keydown', () => { if (!ctx || ctx.state !== 'running') startAudio(); });
+// Sound starts with the first touch anywhere. iOS only counts a touch as a
+// user gesture when it ends, and not as a pointerup when the plate or the keys
+// have taken the touch (they cancel its default), so touchend and click are
+// listened to as well, before anything else sees them.
+const unlockAudio = () => { if (!ctx || ctx.state !== 'running') startAudio(); };
+for (const type of ['touchend', 'pointerup', 'click', 'keydown'])
+  document.addEventListener(type, unlockAudio, { capture: true, passive: true });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && ctx && ctx.state !== 'running') ctx.resume(); });
 
 for (const [id, key] of [['chordToggle', 'chord'], ['bassToggle', 'bass']]) {
