@@ -2364,13 +2364,28 @@ class OmniDSP {
     } else if (L.state === 'armed' && six % 16 === 0) {
       L.start = six; L.state = 'rec'; L.events = [];
       if (this.lastChord) L.events.push(Object.assign({ pos: 0, kind: 'chord', pass: 0 }, this.lastChord));
-      L.events.push(Object.assign({ pos: 0, kind: 'phrase', pass: 0 }, this.lastPhrase));
+      if (this.juno.playing && this.lastPhrase.style >= 0)
+        L.events.push(Object.assign({ pos: 0, kind: 'phrase', pass: 0 }, this.lastPhrase));
       this.postLoop();
     }
     if (L.state === 'play' || L.state === 'rec') {
       const rel = six - L.start, pos = ((rel % len) + len) % len, pass = Math.floor(rel / len);
       for (const e of L.events) if (e.pos === pos && !(L.state === 'rec' && e.pass === pass)) this.applyLoopEvent(e);
     }
+  }
+
+  /* The phrase the loop has at this moment: the last one at or before where it
+     is, or, before the first, the last one round the end. */
+  loopPhraseNow() {
+    const L = this.loop;
+    if ((L.state !== 'play' && L.state !== 'rec') || !this.playing) return null;
+    const list = L.events.filter((e) => e.kind === 'phrase' && e.style >= 0);
+    if (!list.length) return null;
+    const pos = this.loopPos(Math.floor(this.beatPos * 4));
+    let best = null;
+    for (const e of list) if (e.pos <= pos && (!best || e.pos >= best.pos)) best = e;
+    if (!best) for (const e of list) if (!best || e.pos > best.pos) best = e;
+    return best;
   }
 
   loopPos(six) {
@@ -2437,10 +2452,14 @@ class OmniDSP {
     }
     else if (m.type === 'junoParams') this.setJuno(m);
     else if (m.type === 'phrase') {
+      this.liveHeld = m.style >= 0;
+      // In a loop a phrase plays until the next one: lifting the finger is not
+      // recorded, and hands the plate back to what the loop has there.
+      const back = m.style < 0 ? this.loopPhraseNow() : null;
+      if (back) { this.applyLoopEvent(back); return; }
       this.juno.setPhrase(m.style, m.variation);
       this.lastPhrase = { style: m.style, variation: m.variation };
-      this.liveHeld = m.style >= 0;
-      this.record('phrase', this.lastPhrase);
+      if (m.style >= 0) this.record('phrase', this.lastPhrase);
     }
     else if (m.type === 'loopArm') {
       // REC again ends the take and keeps what was played. On a loop that is
@@ -2465,7 +2484,9 @@ class OmniDSP {
       this.postLoop();
     }
     else if (m.type === 'loopLoad') {
-      this.loop.events = m.events || []; this.loop.bars = m.bars || 2;
+      // Lifts saved by an older page are dropped: phrases now play until the next.
+      this.loop.events = (m.events || []).filter((e) => !(e.kind === 'phrase' && e.style < 0));
+      this.loop.bars = m.bars || 2;
       this.loop.state = this.loop.events.length ? (m.state === 'off' ? 'off' : 'play') : 'empty';
       this.postLoop();
     }

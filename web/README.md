@@ -122,9 +122,13 @@ plate — as a loop.
   back what is already there, and what you play on top is added, replacing what
   was on the same sixteenth.
 - REC on a loop that is already there records straight over it, at once.
+- In the loop a phrase plays until the next phrase, and a chord until the next
+  chord: you do not have to keep holding. A tap on a phrase cell is enough, and
+  lifting the finger is not recorded.
 - Once recorded, the loop plays what was played, over and over, while you go to
   other tabs. The chord buttons and the plate follow it.
-- A finger on the plate wins over the loop for as long as it stays.
+- A finger on the plate wins over the loop for as long as it stays; when it
+  lifts, the loop's own phrase comes back.
 - **LOOP** turns playback off and on, and **CLEAR** deletes the loop; it wants two
   taps. The loop is kept in the browser.
 
