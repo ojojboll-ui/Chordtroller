@@ -34,8 +34,12 @@ AudioWorkleten och ljudet faller tillbaka på huvudtråden.
 - **Ljudet** väljs i menyn längst till vänster på andra raden: OMNI, HARPA,
   VIBRAFON och GITARR ur `VoiceSpec.h`. Vibrafonen ringer längst och gitarren
   kortast; ett byte kortar eller förlänger också det som redan klingar.
-- Liggande läge ger tolv kolumner och tre rader. Stående läge vrider gridet till
-  tolv rader och tre kolumner.
+- **Sidan spelas liggande.** Tolv ackordkolumner, sexton steg och en platta bredvid
+  knapparna behöver bredden, och en Omnichord hålls också på tvären. En telefon som
+  hålls upprätt får en skärm som ber den vridas; webben kan inte vrida den själv.
+  På en dator visas alltid instrumentet.
+- Överst sitter två rader för alla instrument: först instrument, EDIT, vad som
+  spelar och tempot, sedan instrumentets inställningar.
 
 ## Juno
 
@@ -50,7 +54,7 @@ ackordgenerator på sex Juno-röster.
   alla knappar. Stämföringen väljer den omvändning som flyttar minst.
 - **Plattan** är fraserna ur `JunoPhrases.h`: åtta stilar uppifrån och ner —
   PULS, ARP 1/8, ARP 1/16, RYTM, SYNKOP, STRUM, GATE, FRAS — och fyra variationer
-  i sidled. Håll ett finger på en ruta så spelar den, dra till en annan så byts
+  i sidled, med stilens namn i en egen kolumn. Håll ett finger på en ruta så spelar den, dra till en annan så byts
   stilen på samma slag, och släpp så tystnar den. **HÅLL** låter frasen spela
   vidare efter släpp, som högerspakens klick.
 - **CUTOFF** och **RESONANS** under plattan är triggrarnas filter, med samma
@@ -72,11 +76,11 @@ rösten ur `AcidEngine.h` och `AcidVoice.h`.
   samma ton igen för paus. **UPP** lyfter steget en oktav, som 303:ans egna
   oktavknappar, **ACC** ger accent och **SLD** glider in i nästa ton. Ett tryck
   på ett stegnummer gör det till loopens sista steg; stegen efter finns kvar,
-  dämpade. När sekvensern står hörs varje ton som sätts. I stående läge går
-  stegen nedåt och tonerna i sidled, de låga till vänster.
-- **Plattan** är filtret: fingret styr cutoff i sidled och env mod på höjden,
-  och värdet ligger kvar när du släpper. Under den sitter resonans, decay och
-  delayns mix.
+  dämpade. När sekvensern står hörs varje ton som sätts.
+- **Två XY-pads** till höger är rattarna man spelar en 303 med: den första har
+  cutoff i sidled och resonans på höjden, den andra env mod i sidled och decay på
+  höjden. Värdena ligger kvar när fingret lyfts, och de två går att spela med var
+  sin tumme. Under dem sitter delayns mix.
 - **Mönster, ljud, skala och tonart** väljs i menyerna. Skalorna är 303:ans:
   moll, frygisk, mollpentatonisk, blues, dur och kromatisk. Tonerna sparas som
   skalsteg, så skala och tonart flyttar hela linjen. **SLUMPA** gör en ny linje

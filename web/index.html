@@ -11,9 +11,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Barlow+Semi+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: an instrument face. Chord keys on the left, the strumplate as a full-height
-   strip on the right, the way the OM-84 puts it under the right hand. Landscape lays the
-   keys out 12 roots across x 3 rows; portrait turns the grid to 12 down x 3 across. */
+/* Layout: an instrument face, held sideways like an Omnichord. One control row across
+   the top; under it the instrument's playing surface on the left (chord keys, or the
+   303's steps) and the right hand's surface beside it (strumplate, phrases, filter pads).
+   A phone held upright is asked to turn: every surface here is built on width. */
 :root {
   --panel: #1b1917;
   --bezel: #25221f;
@@ -56,34 +57,47 @@ body {
   height: 100%;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 10px;
+  padding-block: 8px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 28%);
+  grid-template-columns: minmax(0, 1fr) var(--side, 30%);
   grid-template-rows: auto minmax(0, 1fr);
-  grid-template-areas: "bar plate" "keys plate";
-  gap: 10px 14px;
+  grid-template-areas: "bar bar" "keys plate";
+  gap: 8px 12px;
 }
+/* How much of the width the right hand gets, by what it has to hold. */
+[data-inst="juno"] #app { --side: 38%; }
+[data-inst="acid"] #app { --side: 42%; }
+/* Editing, the editor takes the left and the right hand's surface the full height. */
+#app.editing > .side { grid-row: 1 / 3; }
 
 /* ---------- readout ---------- */
 .bar {
   grid-area: bar;
   display: flex;
   align-items: center;
-  gap: 8px 10px;
+  gap: 6px;
   min-width: 0;
   flex-wrap: wrap;
 }
+/* Two rows, the same for every instrument. The first: what is playing, and time
+   on the right. The second: how the instrument is set. */
+.bar > .inst, .bar > #editBtn { order: 1; }
+.bar > .readout { order: 2; }
+.bar > .rhythm { order: 3; margin-left: auto; }
+.bar > .power { order: 3; }
+.bar > .fx { order: 4; flex: 1 1 100%; }
+.bar > .hint { display: none; }
 .readout {
   display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 10px;
+  gap: 8px;
   background: var(--bezel);
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 6px 12px;
+  border-radius: 5px;
+  padding: 5px 10px;
   min-width: 0;
 }
+.readout .label { display: none; }
 .readout .label {
   font: 500 10px/1 var(--font-mono);
   letter-spacing: .12em;
@@ -91,9 +105,9 @@ body {
   color: var(--ink-dim);
 }
 #chordName {
-  font: 400 22px/1 var(--font-display);
+  font: 400 17px/1 var(--font-display);
   color: var(--led);
-  min-width: 4.5ch;
+  min-width: 3.5ch;
   text-shadow: 0 0 10px color-mix(in srgb, var(--led) 45%, transparent);
 }
 .hint {
@@ -102,16 +116,16 @@ body {
   color: var(--ink-dim);
   min-width: 0;
 }
-.fx { display: flex; flex-wrap: wrap; gap: 6px; }
+.fx { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .toggle, .power, .transport {
-  font: 600 12px/1 var(--font-key);
+  font: 600 11px/1 var(--font-key);
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--ink-dim);
   background: var(--bezel);
   border: 1px solid var(--line);
   border-radius: 5px;
-  padding: 8px 9px;
+  padding: 8px 8px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -165,25 +179,26 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 .prow {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: var(--pname, 64px) repeat(4, minmax(0, 1fr));
   border-top: 1px solid var(--plate-line);
   min-height: 0;
 }
 .prow:first-child { border-top: 0; }
 .prow .pname {
-  position: absolute;
-  top: 4px; left: 8px;
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
   font: 500 10px/1 var(--font-mono);
-  letter-spacing: .08em;
+  letter-spacing: .06em;
   color: var(--ink);
+  white-space: nowrap;
   pointer-events: none;
-  z-index: 1;
 }
 .pcell {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  padding: 0 2px 4px;
+  padding: 0 2px;
   border-left: 1px dashed var(--plate-line);
   font: 400 9px/1 var(--font-mono);
   color: var(--ink-dim);
@@ -192,7 +207,7 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   text-overflow: ellipsis;
   min-width: 0;
 }
-.pcell:first-child { border-left: 0; }
+
 .prow.playing { background: color-mix(in srgb, var(--led) 10%, transparent); }
 .pcell.on { background: color-mix(in srgb, var(--led) 55%, transparent); color: var(--key-ink); }
 .pcell.on.held { background: color-mix(in srgb, var(--led) 28%, transparent); color: var(--ink); }
@@ -283,7 +298,7 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 .ed-note { margin: 0; font: 400 11px/1.4 var(--font-mono); color: var(--ink-dim); }
 .ed-resets { display: flex; flex-wrap: wrap; gap: 6px; grid-column: 1 / -1; padding-top: 4px; }
 .action {
-  font: 600 12px/1 var(--font-key);
+  font: 600 11px/1 var(--font-key);
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--ink-dim);
@@ -377,7 +392,6 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 .sc.bar4 { box-shadow: inset 1px 0 0 var(--line); }
 .sc.cell.on { background: var(--key-major); }
 .sc.cell.on.acc { background: var(--led); }
-.seq.portrait .sc.lab { justify-content: center; padding: 0; font-size: 8px; }
 [data-inst="acid"] .readout, [data-inst="acid"] .hint { display: none !important; }
 .sc.flag { font-size: 8px; letter-spacing: .06em; }
 .sc.flag.set { background: color-mix(in srgb, var(--led) 70%, transparent); color: var(--key-ink); }
@@ -385,10 +399,16 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 .sc.ph { outline: 1px solid var(--led); outline-offset: -1px; }
 .sc.cell.ph:not(.on) { background: color-mix(in srgb, var(--led) 14%, var(--bezel)); }
 
-/* ---------- 303 filter XY ---------- */
+/* ---------- 303 filter pads ---------- */
+.pads {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
 .xy {
   position: relative;
-  flex: 1 1 auto;
   min-height: 0;
   background:
     linear-gradient(var(--plate-line) 1px, transparent 1px) 0 0 / 100% 25%,
@@ -405,8 +425,8 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 .xy-v { top: 0; bottom: 0; width: 1px; }
 .xy-dot {
   position: absolute;
-  width: 22px; height: 22px;
-  margin: -11px 0 0 -11px;
+  width: 20px; height: 20px;
+  margin: -10px 0 0 -10px;
   border-radius: 50%;
   background: var(--led);
   box-shadow: 0 0 14px var(--led);
@@ -435,14 +455,14 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 .transport { color: var(--ink); min-width: 5.2em; justify-content: center; }
 .transport[aria-pressed="true"] { color: var(--key-ink); background: var(--ink); border-color: var(--ink); }
 .sel {
-  font: 600 12px/1 var(--font-key);
+  font: 600 11px/1 var(--font-key);
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--ink);
   background-color: var(--bezel);
   border: 1px solid var(--line);
   border-radius: 5px;
-  padding: 7px 24px 7px 8px;
+  padding: 8px 22px 8px 8px;
   -webkit-appearance: none;
   appearance: none;
   cursor: pointer;
@@ -585,31 +605,29 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   pointer-events: none;
 }
 
-/* Portrait: twelve roots down, three qualities across. */
-@media (orientation: portrait) {
-  #app {
-    grid-template-columns: minmax(0, 1fr) minmax(120px, 36%);
-  }
-  .keys {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: repeat(12, minmax(0, 1fr));
-    gap: 5px;
-  }
-  .hint { display: none; }
-  #chordName { font-size: 18px; }
-  /* Tall, narrow cells: the variation names stand on end. */
-  .pcell {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
+/* A phone held upright is asked to turn. Only touch screens: a desktop window
+   that happens to be tall keeps the instrument. */
+.rotate { display: none; }
+@media (orientation: portrait) and (pointer: coarse) {
+  #app { display: none; }
+  .rotate {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: flex-start;   /* the bottom of the cell, once turned */
-    padding: 6px 0 18px;
+    justify-content: center;
+    gap: 14px;
+    height: 100%;
+    padding-inline: 32px;
+    text-align: center;
+    box-sizing: border-box;
   }
 }
-
-/* Small landscape phones need the height for the keys. */
-@media (max-width: 720px) {
-  .hint { display: none; }
+.rotate svg { width: 84px; height: 84px; color: var(--led); }
+.rotate h1 { margin: 0; font: 400 20px/1.2 var(--font-display); color: var(--ink); text-wrap: balance; }
+.rotate p { margin: 0; max-width: 30ch; font: 400 13px/1.5 var(--font-mono); color: var(--ink-dim); }
+@media (prefers-reduced-motion: no-preference) {
+  .rotate svg { animation: turn 2.4s ease-in-out infinite; }
+  @keyframes turn { 0%, 30% { transform: rotate(0deg); } 55%, 100% { transform: rotate(-90deg); } }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -618,6 +636,17 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 </style>
 </head><!--repo-only-->
 <body><!--repo-only-->
+
+<div class="rotate" role="status">
+  <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="20" y="6" width="24" height="44" rx="4"></rect>
+    <path d="M29 43h6"></path>
+    <path d="M8 40a24 24 0 0 0 16 18"></path>
+    <path d="M22 54l2 4-4 1"></path>
+  </svg>
+  <h1>Vrid telefonen</h1>
+  <p>Chordtroller spelas liggande, som en Omnichord. Tolv ackordkolumner och sexton steg behöver bredden.</p>
+</div>
 
 <div id="app">
   <header class="bar">
@@ -719,18 +748,19 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   <div class="side">
     <div class="plate omni-only" id="plate" role="application" aria-label="Strumplatta, dra fingret över strängarna"></div>
     <div class="phrases juno-only" id="phrases" role="application" aria-label="Frasplatta: håll på en stil för att spela den, sidled väljer variation"></div>
-    <div class="xy acid-only" id="xy" role="application" aria-label="Filter: cutoff i sidled, env mod på höjden">
-      <span class="xy-h" id="xyH"></span><span class="xy-v" id="xyV"></span><span class="xy-dot" id="xyDot"></span>
-      <span class="xy-lab xy-x">Cutoff <b id="xyCut">0</b></span>
-      <span class="xy-lab xy-y">Env mod <b id="xyEnv">0</b></span>
+    <div class="pads acid-only">
+      <div class="xy" data-x="cutoff" data-y="resonance" role="application" aria-label="Filter: cutoff i sidled, resonans på höjden">
+        <span class="xy-h"></span><span class="xy-v"></span><span class="xy-dot"></span>
+        <span class="xy-lab xy-y">Resonans <b></b></span>
+        <span class="xy-lab xy-x">Cutoff <b></b></span>
+      </div>
+      <div class="xy" data-x="envMod" data-y="decay" role="application" aria-label="Envelope: env mod i sidled, decay på höjden">
+        <span class="xy-h"></span><span class="xy-v"></span><span class="xy-dot"></span>
+        <span class="xy-lab xy-y">Decay <b></b></span>
+        <span class="xy-lab xy-x">Env mod <b></b></span>
+      </div>
     </div>
     <div class="filters acid-only">
-      <div class="fader" id="acidResFader" role="slider" tabindex="0" aria-label="Resonans" aria-valuemin="0" aria-valuemax="100">
-        <span class="fill"></span><span class="flabel">Resonans</span><span class="fval"></span>
-      </div>
-      <div class="fader" id="acidDecayFader" role="slider" tabindex="0" aria-label="Decay" aria-valuemin="0" aria-valuemax="100">
-        <span class="fill"></span><span class="flabel">Decay</span><span class="fval"></span>
-      </div>
       <div class="fader" id="acidMixFader" role="slider" tabindex="0" aria-label="Delay" aria-valuemin="0" aria-valuemax="100">
         <span class="fill"></span><span class="flabel">Delay</span><span class="fval"></span>
       </div>
@@ -2196,6 +2226,7 @@ registerProcessor('omni', OmniProcessor);`;
 
 async function startAudio() {
   if (ctx) { if (ctx.state !== 'running') ctx.resume(); return; }
+  try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (e) {}
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
   const AC = window.AudioContext || window.webkitAudioContext;
   ctx = new AC({ latencyHint: 'interactive' });
@@ -2839,17 +2870,10 @@ ROOTS.forEach(([label], r) => {
   });
 });
 
-const portraitQuery = window.matchMedia('(orientation: portrait)');
-function layoutKeys() {
-  const portrait = portraitQuery.matches;
-  for (const b of keyEls) {
-    const r = +b.dataset.r, q = +b.dataset.q;
-    b.style.gridColumn = String(portrait ? q + 1 : r + 1);
-    b.style.gridRow = String(portrait ? r + 1 : q + 1);
-  }
+for (const b of keyEls) {
+  b.style.gridColumn = String(+b.dataset.r + 1);
+  b.style.gridRow = String(+b.dataset.q + 1);
 }
-layoutKeys();
-portraitQuery.addEventListener ? portraitQuery.addEventListener('change', layoutKeys) : portraitQuery.addListener(layoutKeys);
 
 const held = new Map();   // pointerId -> key element
 
@@ -3066,10 +3090,13 @@ function sendPhrase(cell) {
   renderReadout();
 }
 
+/* Rows are styles; across the cells, past the name column, are the variations.
+   A finger on a name plays the first variation. */
 function cellAt(e) {
   const r = phrasesEl.getBoundingClientRect();
+  const nameW = phraseRows[0].firstChild.getBoundingClientRect().width;
   const style = Math.min(7, Math.max(0, Math.floor((e.clientY - r.top) / r.height * 8)));
-  const variation = Math.min(3, Math.max(0, Math.floor((e.clientX - r.left) / r.width * 4)));
+  const variation = Math.min(3, Math.max(0, Math.floor((e.clientX - r.left - nameW) / (r.width - nameW) * 4)));
   return { style, variation };
 }
 
@@ -3182,8 +3209,7 @@ clearBtn.addEventListener('click', () => {
 
 /* ---------- the grid ----------
    Rows are the scale from the root up to its octave; UPP lifts a step an octave,
-   which is how a 303 reaches the second octave. Landscape has the sixteen steps
-   across; portrait turns them to run down the screen. */
+   which is how a 303 reaches the second octave. */
 const seqEl = document.getElementById('seq');
 let seqCells = [];          // every cell, with its step and role
 let seqCols = [];           // cells by step, for the playhead
@@ -3224,27 +3250,18 @@ function buildSeq() {
 
 function layoutSeq() {
   const n = scaleNotes(), rows = n + 1 + 3;   // notes, then UPP ACC SLD
-  const portrait = portraitQuery.matches;
-  seqEl.classList.toggle('portrait', portrait);
-  seqEl.style.gridTemplateColumns = portrait ? `30px repeat(${rows}, minmax(0, 1fr))` : `30px repeat(16, minmax(0, 1fr))`;
-  seqEl.style.gridTemplateRows = portrait ? `16px repeat(16, minmax(0, 1fr))` : `16px repeat(${rows}, minmax(0, 1fr))`;
+  seqEl.style.gridTemplateColumns = 'var(--lab, 30px) repeat(16, minmax(0, 1fr))';
+  seqEl.style.gridTemplateRows = `14px repeat(${rows}, minmax(0, 1fr))`;
   for (const c of seqCells) {
-    // Row index within the instrument: 0 the step numbers, then the notes from
-    // the top down, then the three flags.
+    // Row 0 the step numbers, then the notes from the top down, then the flags.
     let r;
     if (c.role === 'num') r = 0;
     else if (c.role === 'note' || c.role === 'lab') r = 1 + (n - c.k);
     else r = 1 + (n + 1) + ['up', 'acc', 'sld'].indexOf(c.role.replace('lab-', ''));
-    const col = c.s + 1;   // 0 for labels
-    // In portrait the notes read low to high from the left, like a keyboard.
-    const pr = c.role === 'note' || c.role === 'lab' ? 1 + c.k : r;
-    if (portrait) { c.el.style.gridRow = String(col + 1); c.el.style.gridColumn = String(pr + 1); }
-    else { c.el.style.gridRow = String(r + 1); c.el.style.gridColumn = String(col + 1); }
+    c.el.style.gridRow = String(r + 1);
+    c.el.style.gridColumn = String(c.s + 2);   // labels, at step -1, in the first column
   }
-  // Corners left empty in portrait for the labels' row and the numbers' column.
 }
-portraitQuery.addEventListener ? portraitQuery.addEventListener('change', () => { if (seqCells.length) layoutSeq(); })
-                               : portraitQuery.addListener(() => { if (seqCells.length) layoutSeq(); });
 
 function renderSeq() {
   if (!seqCells.length) return;
@@ -3304,37 +3321,40 @@ seqEl.addEventListener('pointerdown', (e) => {
 });
 
 /* ---------- filter XY: cutoff across, env mod up ---------- */
-const xyEl = document.getElementById('xy');
-function showXY() {
-  const snd = acidSound();
-  const x = snd.cutoff * 100, y = (1 - snd.envMod) * 100;
-  document.getElementById('xyDot').style.left = x + '%';
-  document.getElementById('xyDot').style.top = y + '%';
-  document.getElementById('xyV').style.left = x + '%';
-  document.getElementById('xyH').style.top = y + '%';
-  document.getElementById('xyCut').textContent = Math.round(snd.cutoff * 100);
-  document.getElementById('xyEnv').textContent = Math.round(snd.envMod * 100);
+/* Two pads, one for each pair of knobs a 303 is played on: cutoff across and
+   resonance up, env mod across and decay up. Where the finger is, the knobs are,
+   and they stay there when it lifts. Each pad takes its own finger. */
+for (const pad of document.querySelectorAll('.pads .xy')) {
+  const xKey = pad.dataset.x, yKey = pad.dataset.y;
+  const [h, v, dot] = [pad.querySelector('.xy-h'), pad.querySelector('.xy-v'), pad.querySelector('.xy-dot')];
+  const [yVal, xVal] = pad.querySelectorAll('.xy-lab b');
+  const show = () => {
+    const snd = acidSound(), x = snd[xKey] * 100, y = (1 - snd[yKey]) * 100;
+    dot.style.left = x + '%'; dot.style.top = y + '%';
+    v.style.left = x + '%'; h.style.top = y + '%';
+    xVal.textContent = Math.round(snd[xKey] * 100);
+    yVal.textContent = Math.round(snd[yKey] * 100);
+  };
+  mainFaderShows.push(show);
+  let finger = null;
+  const from = (e) => {
+    const r = pad.getBoundingClientRect(), snd = acidSound();
+    snd[xKey] = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    snd[yKey] = Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height));
+    show(); sendAcidParams(); save();
+  };
+  pad.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    try { pad.setPointerCapture(e.pointerId); } catch (err) {}
+    finger = e.pointerId; from(e);
+  });
+  pad.addEventListener('pointermove', (e) => { if (e.pointerId === finger) from(e); });
+  pad.addEventListener('pointerup', () => { finger = null; });
+  pad.addEventListener('pointercancel', () => { finger = null; });
+  show();
 }
-mainFaderShows.push(showXY);
-let xyFinger = null;
-function xyFrom(e) {
-  const r = xyEl.getBoundingClientRect(), snd = acidSound();
-  snd.cutoff = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-  snd.envMod = Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height));
-  showXY(); sendAcidParams(); save();
-}
-xyEl.addEventListener('pointerdown', (e) => {
-  e.preventDefault();
-  try { xyEl.setPointerCapture(e.pointerId); } catch (err) {}
-  xyFinger = e.pointerId; xyFrom(e);
-});
-xyEl.addEventListener('pointermove', (e) => { if (e.pointerId === xyFinger) xyFrom(e); });
-xyEl.addEventListener('pointerup', () => { xyFinger = null; });
-xyEl.addEventListener('pointercancel', () => { xyFinger = null; });
 
 const acidAfter = () => { sendAcidParams(); save(); };
-makeFader('acidResFader', 'resonance', acidSound, acidAfter);
-makeFader('acidDecayFader', 'decay', acidSound, acidAfter);
 makeFader('acidMixFader', 'mix', acidSound, acidAfter);
 
 /* ---------- the 303's page in the synth editor ---------- */
