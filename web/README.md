@@ -38,8 +38,9 @@ AudioWorkleten och ljudet faller tillbaka på huvudtråden.
   knapparna behöver bredden, och en Omnichord hålls också på tvären. En telefon som
   hålls upprätt får en skärm som ber den vridas; webben kan inte vrida den själv.
   På en dator visas alltid instrumentet.
-- Överst sitter två rader för alla instrument: först instrument, EDIT, vad som
-  spelar och tempot, sedan instrumentets inställningar.
+- Plattan till höger går hela höjden. Kontrollerna sitter i två rader över
+  knapparna till vänster, likadant för alla instrument: först instrument, EDIT,
+  vad som spelar och tempot, sedan instrumentets inställningar.
 
 ## Juno
 
