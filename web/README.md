@@ -76,7 +76,17 @@ valt; plattan till höger ligger kvar, så det går att spela medan man rattar, 
   envelope-mängd, key track och HPF; attack, decay, sustain, release och nivå.
   Effekter: delayns mängd, återkoppling och tid, som hör till patchen precis
   som i Chordtroller, och chorusläget.
+- **Juno-LFO:** form (sinus, triangel, fyrkant, sample & hold), hastighet,
+  fördröjning (vibrato och filtersvep tonas in efter anslaget), tonhöjd i
+  halvtoner, filter och PWM. Fabriksljuden har allt utom PWM på noll och låter
+  som förut.
 - **Rummet** — storlek, dämpning och mix — delas av båda instrumenten.
+
+**Spara som** sparar ljudet som det låter just nu under ett eget namn. Egna ljud
+hamnar under *Egna* i ljudmenyn, efter fabriksljuden, och ändringar i dem sparas
+direkt. **Radera ljud** tar bort ett eget ljud; den frågar genom att vilja ha ett
+andra tryck inom tre sekunder. Effekterna hör inte till ljudet, utom Junons
+delay, som hör till patchen som i Chordtroller.
 
 Reglagen i listan flyttas från där de står: dra i sidled för att ändra, upp
 och ner för att rulla. **Återställ ljud** och **Återställ effekter** längst ner

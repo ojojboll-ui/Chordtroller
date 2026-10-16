@@ -262,7 +262,24 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   text-transform: uppercase;
   color: var(--ink-dim);
 }
-.ed-head .done { margin-left: auto; }
+.ed-head #saveAs { margin-left: auto; }
+.ed-save { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ed-save[hidden] { display: none; }
+.ed-save input {
+  flex: 1 1 140px;
+  min-width: 0;
+  font: 600 14px/1 var(--font-key);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--plate);
+  border: 1px solid var(--led);
+  border-radius: 5px;
+  padding: 8px 10px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.action.danger { color: var(--led); }
 .ed-resets { display: flex; flex-wrap: wrap; gap: 6px; grid-column: 1 / -1; padding-top: 4px; }
 .action {
   font: 600 12px/1 var(--font-key);
@@ -555,12 +572,7 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
     <button class="power" id="power" type="button">Slå på ljudet</button>
     <div class="fx omni-only">
       <label class="sr" for="voice">Ljud</label>
-      <select id="voice" class="sel">
-        <option value="0" selected>Omni</option>
-        <option value="1">Harpa</option>
-        <option value="2">Vibrafon</option>
-        <option value="3">Gitarr</option>
-      </select>
+      <select id="voice" class="sel"></select>
       <button class="toggle" id="chordToggle" type="button" aria-pressed="true">Ackordljud</button>
       <button class="toggle" id="bassToggle" type="button" aria-pressed="true">Autobas</button>
       <button class="toggle" id="chorusToggle" type="button" aria-pressed="true">Chorus</button>
@@ -590,12 +602,20 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   <section class="editor" id="editor" hidden aria-labelledby="edName">
     <div class="ed-head">
       <h2 class="ed-title"><span class="ed-kicker">Synt edit</span> <span id="edName">Omni</span></h2>
+      <button class="action" id="saveAs" type="button">Spara som</button>
       <button class="transport done" id="edDone" type="button">Klar</button>
     </div>
+    <form class="ed-save" id="saveForm" hidden>
+      <label class="sr" for="presetName">Namn på ljudet</label>
+      <input id="presetName" type="text" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Namn">
+      <button class="transport done" type="submit">Spara</button>
+      <button class="action" id="saveCancel" type="button">Avbryt</button>
+    </form>
     <div class="ed-body" id="edBody"></div>
     <div class="ed-resets" hidden>
       <button class="action" id="resetSound" type="button">Återställ ljud</button>
       <button class="action" id="resetFx" type="button">Återställ effekter</button>
+      <button class="action danger" id="deleteSound" type="button">Radera ljud</button>
     </div>
   </section>
 
@@ -997,6 +1017,7 @@ class JunoVoice {
     this.stage = 0;   // 0 idle, 1 attack, 2 decay, 3 sustain, 4 release
     this.active = false; this.gateOn = false;
     this.note = -1; this.gate = -1; this.stamp = 0;
+    this.age = 0;   // samples since the note began, for the LFO's fade-in
     this.rng = 0x2545f491 | 0;
   }
   coef(sec) { return Math.pow(0.001, 1 / Math.max(1, this.sr * sec)); }
@@ -1010,7 +1031,7 @@ class JunoVoice {
   noteOn(note, vel, gateLen, order) {
     // The oscillators keep running through a retrigger; resetting them clicks.
     if (!this.active) { this.phase = 0; this.subPhase = 0; }
-    this.note = note; this.vel = vel;
+    this.note = note; this.vel = vel; this.age = 0;
     this.gate = gateLen > 0 ? gateLen : -1;
     this.inc = 440 * Math.pow(2, (note - 69) / 12) / this.sr;
     this.stage = 1; this.active = true; this.gateOn = true; this.stamp = order;
@@ -1051,8 +1072,14 @@ class JunoVoice {
     if (this.gate > 0 && --this.gate === 0) this.noteOff();
     this.envelope();
     if (!this.active) return 0;
-    const p = this.patch, B = JunoVoice.blep, dt = this.inc, sr = this.sr;
+    const p = this.patch, B = JunoVoice.blep, sr = this.sr;
     const wrap = (x) => (x >= 1 ? x - 1 : x);
+    // The LFO section: vibrato and filter sweep fade in over the delay time from
+    // the note's start; PWM runs straight off the LFO, as it always has.
+    this.age++;
+    const fade = p.lfoDelay > 0 ? Math.min(1, this.age / (p.lfoDelay * sr)) : 1;
+    const mod = lfo * fade;
+    const dt = p.lfoPitch > 0 ? this.inc * Math.pow(2, mod * p.lfoPitch / 12) : this.inc;
     const width = Math.min(0.95, Math.max(0.05, p.pulseWidth + lfo * p.pwmDepth * 0.4));
     const saw = (2 * this.phase - 1) - B(this.phase, dt);
     let pulse = this.phase < width ? 1 : -1;
@@ -1071,7 +1098,8 @@ class JunoVoice {
     x -= this.hpLow;
     // Ten octaves across the slider; envelope and key follow in the same units.
     const pos = Math.min(1, Math.max(0, cutoff + p.envAmount * this.env * envScale
-                                          + p.keyTrack * (this.note - 60) / 120));
+                                          + p.keyTrack * (this.note - 60) / 120
+                                          + mod * p.lfoFilter * 0.3));
     const hz = Math.min(20 * Math.pow(2, pos * 10), 0.45 * sr);
     const g = Math.tan(Math.PI * hz / sr), G = g / (1 + g);
     const k = Math.min(1, Math.max(0, res)) * 3.85;
@@ -1135,7 +1163,7 @@ class JunoEngine {
     for (let i = 0; i < 6; i++) this.voices.push(new JunoVoice(sr));
     this.patchIndex = 0; this.setPatch(0);
     this.bpm = 96; this.bps = this.bpm / 60 / sr; this.beatPos = 0;
-    this.cutoff = 0; this.res = 0; this.lfoPhase = 0;
+    this.cutoff = 0; this.res = 0; this.lfoPhase = 0; this.lfoHeld = 0;
     this.root = 0; this.func = 0; this.ext = false; this.genre = 0;
     this.voiced = []; this.bassOn = false; this.octave = 0;
     this.playing = false; this.hold = false; this.strumUp = true;
@@ -1155,7 +1183,8 @@ class JunoEngine {
       const row = (name, saw, pulse, sub, noise, pulseWidth, pwmDepth, lfoRate, envAmount, keyTrack, hpf,
                    attack, decay, sustain, release, level, delaySend, delayFeedback, delayDivision) =>
         ({ name, saw, pulse, sub, noise, pulseWidth, pwmDepth, lfoRate, envAmount, keyTrack, hpf,
-           attack, decay, sustain, release, level, delaySend, delayFeedback, delayDivision });
+           attack, decay, sustain, release, level, delaySend, delayFeedback, delayDivision,
+           lfoWave: 'sine', lfoDelay: 0, lfoPitch: 0, lfoFilter: 0 });
       JunoEngine._patches = [
         row('PAD',     0.80, 0.45, 0.30, 0, 0.50, 0.35, 0.45, 0.22, 0.30, 0.05, 0.55,  1.20, 0.80, 1.40, 0.55, 0.18, 0.35, 1),
         row('STRÅKAR', 1.00, 0.00, 0.15, 0, 0.50, 0.00, 0.40, 0.10, 0.30, 0.20, 0.35,  1.00, 0.90, 1.00, 0.50, 0.10, 0.30, 2),
@@ -1251,7 +1280,8 @@ class JunoEngine {
 
   get patch() { return JunoEngine.patches()[this.patchIndex]; }
   setPatch(i) {
-    this.patchIndex = ((i % 5) + 5) % 5;
+    const n = JunoEngine.patches().length;
+    this.patchIndex = ((i % n) + n) % n;
     for (const v of this.voices) v.setPatch(JunoEngine.patches()[this.patchIndex]);
   }
   setTempo(bpm) { this.bpm = Math.min(220, Math.max(40, bpm)); this.bps = this.bpm / 60 / this.sr; }
@@ -1447,8 +1477,18 @@ class JunoEngine {
 
   process() {
     this.lfoPhase += this.patch.lfoRate / this.sr;
-    if (this.lfoPhase >= 1) this.lfoPhase -= 1;
-    const lfo = Math.sin(2 * Math.PI * this.lfoPhase);
+    if (this.lfoPhase >= 1) {
+      this.lfoPhase -= 1;
+      this.lfoHeld = Math.random() * 2 - 1;   // sample and hold: a new level each cycle
+    }
+    const ph = this.lfoPhase;
+    let lfo;
+    switch (this.patch.lfoWave) {
+      case 'triangle': lfo = 1 - 4 * Math.abs(ph - 0.5); break;
+      case 'square': lfo = ph < 0.5 ? 1 : -1; break;
+      case 'sh': lfo = this.lfoHeld; break;
+      default: lfo = Math.sin(2 * Math.PI * ph);
+    }
     if (this.playing) {
       this.beatPos += this.bps;
       this.tick();
@@ -1793,7 +1833,6 @@ JunoEngine.genres().forEach((g, i) => genreSel.add(new Option(g.charAt(0) + g.sl
 genreSel.addEventListener('change', () => { junoState.genre = +genreSel.value; sendJunoChord(); renderReadout(); });
 
 const patchSel = document.getElementById('patch');
-JunoEngine.patches().forEach((p, i) => patchSel.add(new Option(p.name.charAt(0) + p.name.slice(1).toLowerCase(), i)));
 patchSel.addEventListener('change', () => { junoState.patch = +patchSel.value; sendJunoParams(); });
 
 document.getElementById('junoChorus').addEventListener('change', (e) => { junoState.chorus = +e.target.value; sendJunoParams(); save(); });
@@ -1889,8 +1928,15 @@ const STORE = 'chordtroller-web-sounds-v1';
 try {
   const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
   if (saved) {
-    (saved.omni || []).forEach((v, i) => { if (sounds.omni[i]) Object.assign(sounds.omni[i], v); });
-    (saved.juno || []).forEach((v, i) => { if (sounds.juno[i]) Object.assign(sounds.juno[i], v); });
+    // Saved sounds are laid over the factory rows, so fields added since (the
+    // Juno's LFO section) arrive with their defaults; the user's own sounds
+    // follow the factory ones.
+    for (const kind of ['omni', 'juno']) {
+      (saved[kind] || []).forEach((v, i) => {
+        if (sounds[kind][i]) Object.assign(sounds[kind][i], v);
+        else if (v && v.user) sounds[kind].push(Object.assign(clone(FACTORY[kind][0]), v));
+      });
+    }
     Object.assign(fxState, saved.fx || {});
   }
 } catch (e) {}
@@ -1904,6 +1950,26 @@ function save() {
 }
 
 const voiceSel = document.getElementById('voice');
+
+/* Both sound menus: the factory sounds, then the user's own under Egna. */
+function rebuildSoundMenus() {
+  for (const [sel, list] of [[voiceSel, sounds.omni], [patchSel, sounds.juno]]) {
+    const keep = sel.value;
+    sel.textContent = '';
+    let group = null;
+    list.forEach((snd, i) => {
+      const opt = new Option(title(snd.name), String(i));
+      if (snd.user) {
+        if (!group) { group = document.createElement('optgroup'); group.label = 'Egna'; sel.appendChild(group); }
+        group.appendChild(opt);
+      } else sel.appendChild(opt);
+    });
+    sel.value = keep && +keep < list.length ? keep : '0';
+  }
+}
+rebuildSoundMenus();
+junoState.patch = +patchSel.value;
+
 function sendVoiceSpec() { send({ type: 'voiceSpec', spec: sounds.omni[+voiceSel.value] }); }
 function sendJunoPatch(i) { send({ type: 'junoPatchData', index: i, patch: sounds.juno[i] }); }
 function sendOmniFx() { send({ type: 'omniFx', ...fxState }); }
@@ -1911,7 +1977,7 @@ function sendOmniFx() { send({ type: 'omniFx', ...fxState }); }
 const pct = (v) => Math.round(v * 100) + ' %';
 const secs = (v) => (v < 0.1 ? (v * 1000).toFixed(v < 0.01 ? 1 : 0) + ' ms' : v.toFixed(2) + ' s');
 const hz = (v) => v.toFixed(2) + ' Hz';
-const title = (name) => name.charAt(0) + name.slice(1).toLowerCase();
+function title(name) { return name.charAt(0) + name.slice(1).toLowerCase(); }
 
 /* What the editor shows. `obj` says where a value lives: the sound being
    edited (default), the shared effects, or the Juno's live controls. */
@@ -1942,9 +2008,14 @@ const EDIT = {
       { label: 'Puls', key: 'pulse', min: 0, max: 1, fmt: pct },
       { label: 'Sub', key: 'sub', min: 0, max: 1, fmt: pct },
       { label: 'Brus', key: 'noise', min: 0, max: 1, fmt: pct },
-      { label: 'Pulsbredd', key: 'pulseWidth', min: 0.05, max: 0.95, fmt: pct },
-      { label: 'PWM', key: 'pwmDepth', min: 0, max: 1, fmt: pct },
-      { label: 'LFO', key: 'lfoRate', min: 0.05, max: 10, log: true, fmt: hz } ] },
+      { label: 'Pulsbredd', key: 'pulseWidth', min: 0.05, max: 0.95, fmt: pct } ] },
+    { group: 'LFO', items: [
+      { kind: 'choice', label: 'Form', key: 'lfoWave', options: [['sine', 'Sin'], ['triangle', 'Tri'], ['square', 'Fyrk'], ['sh', 'S&H']] },
+      { label: 'Hastighet', key: 'lfoRate', min: 0.05, max: 20, log: true, fmt: hz },
+      { label: 'Fördröjning', key: 'lfoDelay', min: 0, max: 3, fmt: (v) => v < 0.005 ? 'av' : secs(v) },
+      { label: 'Tonhöjd', key: 'lfoPitch', min: 0, max: 2, fmt: (v) => v.toFixed(2) + ' ht' },
+      { label: 'Filter', key: 'lfoFilter', min: 0, max: 1, fmt: pct },
+      { label: 'PWM', key: 'pwmDepth', min: 0, max: 1, fmt: pct } ] },
     { group: 'Filter', items: [
       { obj: 'juno', label: 'Cutoff', key: 'cutoff', min: 0, max: 1, fmt: pct },
       { obj: 'juno', label: 'Resonans', key: 'resonance', min: 0, max: 1, fmt: pct },
@@ -2063,6 +2134,9 @@ const resetRow = document.querySelector('.ed-resets');
 
 function renderEditor() {
   const sound = soundBeingEdited();
+  document.getElementById('resetSound').hidden = !!sound.user;
+  document.getElementById('deleteSound').hidden = !sound.user;
+  arm(deleteBtn, false);
   edName.textContent = (inst === 'omni' ? 'Omni · ' : 'Juno · ') + title(sound.name);
   const scroll = edBody.scrollTop;
   edBody.textContent = '';
@@ -2095,6 +2169,65 @@ function closeEditor() {
 }
 document.getElementById('editBtn').addEventListener('click', openEditor);
 document.getElementById('edDone').addEventListener('click', closeEditor);
+
+/* ---------- presets ---------- */
+
+const saveForm = document.getElementById('saveForm');
+const nameInput = document.getElementById('presetName');
+
+document.getElementById('saveAs').addEventListener('click', () => {
+  saveForm.hidden = false;
+  const own = sounds[inst].filter((x) => x.user).length;
+  nameInput.value = 'Eget ' + (own + 1);
+  nameInput.focus();
+  nameInput.select();
+});
+document.getElementById('saveCancel').addEventListener('click', () => { saveForm.hidden = true; });
+
+/* The sound as it is now becomes a new sound of the user's own, and is selected. */
+saveForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const fresh = clone(soundBeingEdited());
+  fresh.name = (nameInput.value.trim() || 'Eget').toUpperCase().slice(0, 16);
+  fresh.user = true;
+  sounds[inst].push(fresh);
+  const i = sounds[inst].length - 1;
+  rebuildSoundMenus();
+  if (inst === 'omni') { voiceSel.value = String(i); sendVoiceSpec(); }
+  else { patchSel.value = String(i); junoState.patch = i; sendJunoPatch(i); sendJunoParams(); }
+  saveForm.hidden = true;
+  nameInput.blur();
+  save();
+  renderEditor();
+});
+
+/* Deleting asks twice, on the button itself: the page cannot show a dialog. */
+const deleteBtn = document.getElementById('deleteSound');
+let armTimer = 0;
+function arm(btn, on) {
+  clearTimeout(armTimer);
+  btn.dataset.armed = on ? '1' : '';
+  btn.textContent = on ? 'Tryck igen för att radera' : 'Radera ljud';
+  if (on) armTimer = setTimeout(() => arm(btn, false), 3000);
+}
+deleteBtn.addEventListener('click', () => {
+  if (!deleteBtn.dataset.armed) { arm(deleteBtn, true); return; }
+  arm(deleteBtn, false);
+  const i = inst === 'omni' ? +voiceSel.value : junoState.patch;
+  if (!sounds[inst][i] || !sounds[inst][i].user) return;
+  sounds[inst].splice(i, 1);
+  if (inst === 'omni') voiceSel.value = '0'; else patchSel.value = '0';
+  rebuildSoundMenus();
+  if (inst === 'omni') sendVoiceSpec();
+  else {
+    // Everything after the deleted sound moved down one place.
+    junoState.patch = 0;
+    sounds.juno.forEach((_, k) => sendJunoPatch(k));
+    sendJunoParams();
+  }
+  save();
+  renderEditor();
+});
 
 document.getElementById('resetSound').addEventListener('click', () => {
   const i = inst === 'omni' ? +voiceSel.value : junoState.patch;
