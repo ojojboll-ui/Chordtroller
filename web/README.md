@@ -119,8 +119,11 @@ plate — as a loop.
   recording starts is on the first step. Everything lands on the nearest
   sixteenth.
 - Recording goes round and round until REC is pressed again: each pass plays
-  back what is already there, and what you play on top is added, replacing what
-  was on the same sixteenth.
+  back what is already there, and you record over it like tape. A chord you
+  press replaces the loop's chords from there to the end of the pass, and a
+  phrase you tap replaces its phrases the same way; what comes before stays.
+- Pressing a chord while the loop plays without REC holds that chord until the
+  loop comes round again, without changing the loop.
 - REC on a loop that is already there records straight over it, at once.
 - In the loop a phrase plays until the next phrase, and a chord until the next
   chord: you do not have to keep holding. A tap on a phrase cell is enough, and

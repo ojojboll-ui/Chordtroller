@@ -2176,7 +2176,7 @@ class OmniDSP {
     this.bpm = 96; this.bps = 96 / 60 / sr;
     this.beatPos = 0; this.lastSix = -1; this.lastFreeBeat = -1;
     // The Juno's loop: what was played on it, quantised to sixteenths.
-    this.loop = { state: 'empty', bars: 2, events: [], start: 0 };
+    this.loop = { state: 'empty', bars: 2, events: [], start: 0, punch: {} };
     this.lastChord = null;
     this.lastPhrase = { style: -1, variation: 0 };
     this.liveHeld = false;   // a finger on the phrase plate wins over the loop
@@ -2235,7 +2235,7 @@ class OmniDSP {
     this.playing = on;
     if (on) {
       this.beatPos = 0; this.lastSix = -1;
-      this.loop.start = 0;
+      this.loop.start = 0; this.loop.punch = {};
       this.acid.running = true;
       this.comp.setRunning(true);
       this.juno.external = true;
@@ -2321,15 +2321,22 @@ class OmniDSP {
      top of the finger that just played it. */
   record(kind, data) {
     const L = this.loop;
-    if (L.state !== 'rec') return;
+    if (L.state !== 'rec' && L.state !== 'play') return;
     const len = L.bars * 16, rel = Math.round(this.beatPos * 4) - L.start;
-    const pos = ((rel % len) + len) % len;
+    const pos = ((rel % len) + len) % len, pass = Math.floor(rel / len);
+    // Like tape: what is played from here to the end of the pass replaces what
+    // was there, so the loop's old chords do not snap back over the new one.
+    // Playing along without REC holds the loop's own off the same way, without
+    // erasing anything.
+    if (L.state !== 'rec') { if (kind === 'chord') L.punch.chord = pass; return; }
+    L.punch[kind] = pass;
     L.events = L.events.filter((e) => !(e.pos === pos && e.kind === kind));
-    L.events.push(Object.assign({ pos, kind, pass: Math.floor(rel / len) }, data));
+    L.events.push(Object.assign({ pos, kind, pass }, data));
   }
 
   finishRec() {
     const L = this.loop;
+    L.punch = {};
     for (const e of L.events) delete e.pass;
     L.events.sort((a, b) => a.pos - b.pos);
     L.state = L.events.length ? 'play' : 'empty';
@@ -2359,10 +2366,10 @@ class OmniDSP {
   loopStep(six) {
     const L = this.loop, len = L.bars * 16;
     if (L.state === 'armed' && six % 16 === 0 && L.events.length) {
-      L.state = 'rec';   // over a loop that is there, on its own bar lines
+      L.state = 'rec'; L.punch = {};   // over a loop that is there, on its own bar lines
       this.postLoop();
     } else if (L.state === 'armed' && six % 16 === 0) {
-      L.start = six; L.state = 'rec'; L.events = [];
+      L.start = six; L.state = 'rec'; L.events = []; L.punch = {};
       if (this.lastChord) L.events.push(Object.assign({ pos: 0, kind: 'chord', pass: 0 }, this.lastChord));
       if (this.juno.playing && this.lastPhrase.style >= 0)
         L.events.push(Object.assign({ pos: 0, kind: 'phrase', pass: 0 }, this.lastPhrase));
@@ -2370,7 +2377,13 @@ class OmniDSP {
     }
     if (L.state === 'play' || L.state === 'rec') {
       const rel = six - L.start, pos = ((rel % len) + len) % len, pass = Math.floor(rel / len);
-      for (const e of L.events) if (e.pos === pos && !(L.state === 'rec' && e.pass === pass)) this.applyLoopEvent(e);
+      const rec = L.state === 'rec';
+      const over = (e) => L.punch[e.kind] === pass && e.pass !== pass;
+      for (const e of L.events) {
+        if (e.pos !== pos || (rec && e.pass === pass)) continue;
+        if (!over(e)) this.applyLoopEvent(e);
+      }
+      if (rec) L.events = L.events.filter((e) => !(e.pos === pos && over(e)));
     }
   }
 
@@ -2467,7 +2480,7 @@ class OmniDSP {
       const L = this.loop;
       if (L.state === 'rec') this.finishRec();
       else if (L.state === 'armed') { L.state = L.events.length ? 'play' : 'empty'; this.postLoop(); }
-      else if (L.events.length && this.playing) { L.state = 'rec'; this.postLoop(); }
+      else if (L.events.length && this.playing) { L.state = 'rec'; L.punch = {}; this.postLoop(); }
       else { L.state = 'armed'; this.postLoop(); }
     }
     else if (m.type === 'loopToggle') {
