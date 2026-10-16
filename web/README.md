@@ -135,12 +135,35 @@ plate — as a loop.
 - **LOOP** turns playback off and on, and **CLEAR** deletes the loop; it wants two
   taps. The loop is kept in the browser.
 
+## Chord layouts
+
+The layout menu on the Omnichord and Juno tabs arranges the chord buttons. The
+two tabs share it, and it is kept in the browser.
+
+- **Fifths** — the OM-84: roots round the circle of fifths, so the chords next
+  to each other are the closest keys, and I, IV and V sit side by side.
+- **Key** — the chords of one major key (Key C to Key F), in scale order, with
+  the degree on each button. The top row is the triads (I ii iii IV V vi vii°),
+  the middle row the sevenths, and the bottom row colour chords: the
+  dominants leading to IV, ii, V and vi, and iv, ♭VI and ♭VII borrowed from the
+  minor key. Everything fits together, so it is hard to play a wrong chord.
+- **Tonnetz** — three strips of the Tonnetz. Along a row, each chord shares two
+  notes with the next, major and minor alternating a third apart (C, Em, G,
+  Bm …), so moving along a row changes one note at a time. Each major chord sits
+  over its parallel minor. Smooth, cinematic changes that are easy to find by
+  sliding across.
+- **Chromatic** — roots C to B in piano order, rows major, minor and 7.
+
+Fifths and Chromatic combine two buttons in a column as the OM-84 does; Key and
+Tonnetz play the button pressed.
+
 ## Omnichord
 
-- **The chord buttons** are laid out as on an OM-84: twelve roots in fifths, Eb
-  to G#, and the rows major, minor and 7. Holding two buttons in one column gives
-  major+minor = dim, major+7 = maj7 and minor+7 = m7. The chord stays when you
-  let go.
+- **The chord buttons** are laid out as on an OM-84 to begin with: twelve roots
+  in fifths, Eb to G#, and the rows major, minor and 7. Holding two buttons in
+  one column gives major+minor = dim, major+7 = maj7 and minor+7 = m7. The chord
+  stays when you let go. The **layout** menu offers other arrangements (see
+  *Chord layouts*).
 - **The strum plate** has thirteen strings, the lowest at the bottom. A finger
   put down plucks the string under it, and a dragged finger plucks every string
   it crosses. Several fingers work.

@@ -727,6 +727,14 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   touch-action: none;
 }
 .key small { font-size: .72em; font-weight: 500; }
+/* In a key, each button carries its degree; the Tonnetz needs no more. */
+.key .deg {
+  position: absolute;
+  top: 5px; left: 6px;
+  font: 500 9px/1 var(--font-mono);
+  letter-spacing: 0;
+  opacity: .6;
+}
 .key.q1 { background: var(--key-minor); }
 .key.q2 { background: var(--key-seventh); }
 .key.down { transform: translateY(2px); box-shadow: 0 1px 0 var(--key-shadow), inset 0 -1px 0 rgb(0 0 0 / .12); }
@@ -753,6 +761,7 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 [data-inst]:not([data-inst="acid"]) .acid-only,
 [data-inst]:not([data-inst="drums"]) .drums-only,
 [data-inst]:not([data-inst="mix"]) .mix-only,
+[data-inst]:not([data-inst="omni"]):not([data-inst="juno"]) .keys-only,
 [data-inst="acid"] .keys, [data-inst="drums"] .keys, [data-inst="mix"] .keys,
 [data-inst="acid"] .readout, [data-inst="drums"] .readout, [data-inst="mix"] .readout,
 [data-inst="drums"] #editBtn, [data-inst="mix"] #editBtn,
@@ -808,12 +817,19 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   [data-inst="acid"] #app { --side: 33%; }
   .bar .metro { padding: 7px 6px; font-size: 10px; letter-spacing: .04em; gap: 5px; }
   .row3 .fader { height: 30px; padding: 0 6px; }
+  .bar .row3 { gap: 4px; }
+  .row3 .filters { flex: 1 1 0; gap: 4px; }
+  .row3 .rec { gap: 4px; }
+  .row3 .toggle::before { display: none; }
+  .row3 .toggle[aria-pressed="true"] { border-color: var(--led); }
   .row3 .fader .flabel, .row3 .fader .fval { font-size: 10px; letter-spacing: .03em; }
   .bar .toggle, .bar .transport, .bar .action, .rec .toggle, .rec .action, .rec .recbtn { padding: 7px 6px; font-size: 10px; letter-spacing: .04em; gap: 5px; }
   .bar .transport { min-width: 4.4em; }
   .bar .sel { padding: 7px 18px 7px 6px; font-size: 10px; letter-spacing: .04em; background-position: right 5px center; }
   .bar .tempo button { padding: 0 7px; }
-  .bar #chordName { font-size: 15px; }
+  .bar #chordName { font-size: 15px; min-width: 2ch; }
+  .bar > .row2 { gap: 4px; }
+  .bar .readout { padding: 5px 6px; }
 }
 
 /* A phone held upright is asked to turn. Only touch screens: a desktop window
@@ -897,15 +913,14 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
           <option value="waltz">Waltz</option>
         </select>
         <button class="toggle" id="chordToggle" type="button" aria-pressed="false">Chords</button>
-        <button class="toggle" id="bassToggle" type="button" aria-pressed="false">Auto bass</button>
+        <button class="toggle" id="bassToggle" type="button" aria-pressed="false"><span class="wide">Auto </span>bass</button>
       </div>
       <div class="fx juno-only">
         <label class="sr" for="genre">Genre</label>
         <select id="genre" class="sel"></select>
         <label class="sr" for="patch">Sound</label>
         <select id="patch" class="sel"></select>
-        <button class="toggle" id="junoBassToggle" type="button" aria-pressed="true">Bass</button>
-        <button class="toggle" id="extToggle" type="button" aria-pressed="false">Extended</button>
+        <button class="toggle" id="extToggle" type="button" aria-pressed="false">Ext<span class="wide">ended</span></button>
       </div>
       <div class="fx acid-only">
         <label class="sr" for="acidPatternSel">Pattern</label>
@@ -925,12 +940,27 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
         <button class="action" id="drumRandom" type="button">Random</button>
         <button class="action" id="drumClear" type="button">Clear</button>
       </div>
+      <div class="fx keys-only">
+        <label class="sr" for="layoutSel">Chord layout</label>
+        <select id="layoutSel" class="sel">
+          <option value="fifths">Fifths</option>
+          <optgroup label="Key">
+            <option value="key:0">Key C</option><option value="key:7">Key G</option><option value="key:2">Key D</option>
+            <option value="key:9">Key A</option><option value="key:4">Key E</option><option value="key:11">Key B</option>
+            <option value="key:6">Key F#</option><option value="key:1">Key Db</option><option value="key:8">Key Ab</option>
+            <option value="key:3">Key Eb</option><option value="key:10">Key Bb</option><option value="key:5">Key F</option>
+          </optgroup>
+          <option value="tonnetz">Tonnetz</option>
+          <option value="chromatic">Chromatic</option>
+        </select>
+      </div>
       <div class="fx mix-only">
         <button class="action" id="mixReset" type="button">Reset mix</button>
       </div>
     </div>
     <div class="row3 juno-only">
       <button class="toggle" id="holdToggle" type="button" aria-pressed="false">Hold</button>
+      <button class="toggle" id="junoBassToggle" type="button" aria-pressed="true">Bass</button>
       <div class="rec" id="rec" data-state="empty" role="group" aria-label="Loop recorder">
         <button class="recbtn" id="loopRec" type="button">Rec</button>
         <div class="seg" id="loopBars" role="group" aria-label="Loop length in bars">
@@ -2629,6 +2659,64 @@ const ROOTS = [['Eb', 3], ['Bb', 10], ['F', 5], ['C', 0], ['G', 7], ['D', 2],
 const ROWS = [{ cls: 'q0', suffix: '', name: 'major' },
               { cls: 'q1', suffix: 'm', name: 'minor' },
               { cls: 'q2', suffix: '7', name: 'seventh' }];
+// The Omnichord's own spelling of each root.
+const rootName = (pc) => ROOTS.find((r) => r[1] === ((pc % 12) + 12) % 12)[0];
+
+/* =============================================================================
+   Chord layouts. Every layout is twelve columns or fewer of three rows; each
+   cell is a root and a quality.
+   - FIFTHS: the OM-84, roots round the circle of fifths, rows major, minor, 7.
+   - KEY: the chords of one major key in scale order: triads, then sevenths,
+     then colour chords — secondary dominants and borrowed ones.
+   - TONNETZ: three strips of the Tonnetz. Along a row each chord shares two
+     notes with the next (major and minor alternate, a third apart); down a
+     column every other pair shares two notes as well.
+   - CHROMATIC: roots C to B, rows major, minor, 7.
+   Fifths and chromatic combine two buttons in a column the way the OM-84 does;
+   key and Tonnetz play the button pressed.
+   ============================================================================= */
+const QUALITY_ROWS = ['maj', 'min', 'dom7'];
+const ROWS_OF = { maj: [0], min: [1], dom7: [2], dim: [0, 1], maj7: [0, 2], min7: [1, 2] };
+function buildLayout(kind, tonic) {
+  const cells = [];
+  if (kind === 'fifths' || kind === 'chromatic') {
+    const roots = kind === 'fifths' ? ROOTS.map((r) => r[1]) : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    roots.forEach((pc, col) => QUALITY_ROWS.forEach((q, row) =>
+      cells.push({ pc, q, row, col, cls: 'q' + row, label: rootName(pc) })));
+    return { cols: 12, combo: true, cells };
+  }
+  if (kind === 'key') {
+    const flats = [5, 10, 3, 8, 1].includes(tonic);
+    const name = (iv, forceFlat) => ((forceFlat || flats) ? PC_NAMES : PC_SHARPS)[(tonic + iv) % 12];
+    const scale = [0, 2, 4, 5, 7, 9, 11];
+    const rows = [
+      [['maj', 'I'], ['min', 'ii'], ['min', 'iii'], ['maj', 'IV'], ['maj', 'V'], ['min', 'vi'], ['dim', 'vii°']],
+      [['maj7', 'I'], ['min7', 'ii'], ['min7', 'iii'], ['maj7', 'IV'], ['dom7', 'V'], ['min7', 'vi'], ['dim', 'viiø']]
+    ];
+    rows.forEach((r, row) => r.forEach(([q, deg], col) =>
+      cells.push({ pc: (tonic + scale[col]) % 12, q, row, col, cls: 'q' + row, deg, label: name(scale[col]) })));
+    // Colour: dominants of I, ii, iii and vi, and the chords borrowed from minor.
+    [[0, 'dom7', 'V/IV'], [9, 'dom7', 'V/ii'], [2, 'dom7', 'V/V'], [4, 'dom7', 'V/vi'],
+     [5, 'min', 'iv', true], [8, 'maj', '♭VI', true], [10, 'maj', '♭VII', true]]
+      .forEach(([iv, q, deg, borrowed], col) =>
+        cells.push({ pc: (tonic + iv) % 12, q, row: 2, col, cls: 'q2', deg, label: name(iv, borrowed && !flats && tonic !== 6 ? true : false) }));
+    return { cols: 7, combo: false, cells };
+  }
+  // Tonnetz: strip k lies between the line of fifths through 4k and the one a
+  // major third above. Its triangles alternate major (root 4k + 7i) and minor
+  // (root 4k + 4 + 7i). Each strip below is shifted one triangle, so a major
+  // chord sits over its parallel minor.
+  for (let row = 0; row < 3; row++) {
+    const k = 1 - row;
+    for (let col = 0; col < 12; col++) {
+      const t = col - 4 + (row - 1);
+      const i = Math.floor(t / 2), major = ((t % 2) + 2) % 2 === 0;
+      const pc = ((4 * k + (major ? 0 : 4) + 7 * i) % 12 + 12) % 12;
+      cells.push({ pc, q: major ? 'maj' : 'min', row, col, cls: major ? 'q0' : 'q1', label: rootName(pc) });
+    }
+  }
+  return { cols: 12, combo: false, cells };
+}
 
 /* =============================================================================
    Audio plumbing
@@ -2642,8 +2730,10 @@ let inst = 'omni';
 const junoState = { genre: 0, patch: 0, chorus: 1, bass: true, ext: false, hold: false, cutoff: 0.6, resonance: 0.15 };
 let phrase = null;   // { style, variation } under the finger, or held
 /* Each tab plays its own chord: the Omni's keys and the Juno's keys are two parts. */
-function makeChord(r, quality, rows) { return { r, quality, rows, notes: buildStrings(ROOTS[r][1], quality) }; }
-const chordState = { omni: makeChord(3, 'maj', new Set([0])), juno: makeChord(3, 'maj', new Set([0])) };
+/* A chord is a root (pitch class), a quality, and how the root is spelled on
+   the keys it came from. */
+function makeChord(pc, quality, label) { return { pc, quality, label: label || rootName(pc), notes: buildStrings(pc, quality) }; }
+const chordState = { omni: makeChord(0, 'maj'), juno: makeChord(0, 'maj') };
 let current = chordState.omni;
 
 const earlyPlucks = [];   // the touch that starts the sound is heard too
@@ -2972,6 +3062,7 @@ const mixState = {};
 for (const [ch] of MIX_CHANNELS) mixState[ch] = { volume: 0.8, mute: false, filter: 0 };
 
 const loopUI = { state: 'empty', bars: 2, events: [] };
+let savedLayout = 'fifths';
 try {
   const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
   if (saved) {
@@ -2994,6 +3085,7 @@ try {
     if (saved.loop) Object.assign(loopUI, saved.loop);
     if (saved.bpm) rhythm.bpm = saved.bpm;
     if (saved.metronome) transport.metronome = true;
+    if (saved.layout) savedLayout = saved.layout;
     (saved.patterns || []).forEach((v, i) => {
       if (acidPatterns[i]) Object.assign(acidPatterns[i], v, { name: FACTORY_PATTERNS[i].name });
       else if (v && v.user) acidPatterns.push(v);
@@ -3009,7 +3101,8 @@ function save() {
       localStorage.setItem(STORE, JSON.stringify({ omni: sounds.omni, juno: sounds.juno, acid: sounds.acid, fx: fxState,
                                                     acidState, patterns: acidPatterns, drums: drumState,
                                                     mix: mixState, loop: loopUI, bpm: rhythm.bpm,
-                                                    metronome: transport.metronome }));
+                                                    metronome: transport.metronome,
+                                                    layout: layoutSel.value }));
     } catch (e) {}
   }, 300);
 }
@@ -3367,22 +3460,28 @@ const keysEl = document.getElementById('keys');
 const chordNameEl = document.getElementById('chordName');
 const keyEls = [];
 
-ROOTS.forEach(([label], r) => {
-  ROWS.forEach((row, q) => {
+const layout = { kind: 'fifths', tonic: 0, map: null };
+const QUALITY_NAMES = { maj: 'major', min: 'minor', dim: 'diminished', dom7: 'seventh', maj7: 'major seventh', min7: 'minor seventh' };
+function buildKeys() {
+  layout.map = buildLayout(layout.kind, layout.tonic);
+  keysEl.textContent = '';
+  keyEls.length = 0;
+  keysEl.style.gridTemplateColumns = 'repeat(' + layout.map.cols + ', minmax(0, 1fr))';
+  for (const c of layout.map.cells) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'key ' + row.cls;
-    b.dataset.r = r; b.dataset.q = q;
-    b.setAttribute('aria-label', label + ' ' + row.name);
-    b.innerHTML = label + (row.suffix ? '<small>' + row.suffix + '</small>' : '');
+    b.className = 'key ' + c.cls;
+    b.cell = c;
+    b.dataset.col = c.col; b.dataset.row = c.row;
+    b.style.gridColumn = String(c.col + 1);
+    b.style.gridRow = String(c.row + 1);
+    const suffix = QUALITIES[c.q].suffix;
+    b.setAttribute('aria-label', c.label + ' ' + QUALITY_NAMES[c.q] + (c.deg ? ', ' + c.deg : ''));
+    b.innerHTML = (c.deg ? '<span class="deg">' + c.deg + '</span>' : '') + c.label + (suffix ? '<small>' + suffix + '</small>' : '');
     keysEl.appendChild(b);
     keyEls.push(b);
-  });
-});
-
-for (const b of keyEls) {
-  b.style.gridColumn = String(+b.dataset.r + 1);
-  b.style.gridRow = String(+b.dataset.q + 1);
+  }
+  renderKeys();
 }
 
 const held = new Map();   // pointerId -> key element
@@ -3399,12 +3498,21 @@ function qualityFrom(rows) {
   return 'maj';
 }
 
-function selectChord(r) {
-  const rows = new Set();
-  for (const b of held.values()) if (+b.dataset.r === r) rows.add(+b.dataset.q);
-  if (rows.size === 0) rows.add(0);
+function selectChord(key) {
+  const c = key.cell;
+  let quality = c.q;
+  if (layout.map.combo) {
+    const rows = new Set();
+    for (const b of held.values()) if (b.cell.col === c.col) rows.add(b.cell.row);
+    if (rows.size === 0) rows.add(c.row);
+    quality = qualityFrom(rows);
+  }
+  setChord(c.pc, quality, c.label);
+}
+
+function setChord(pc, quality, label) {
   const part = inst === 'juno' ? 'juno' : 'omni';
-  current = chordState[part] = makeChord(r, qualityFrom(rows), rows);
+  current = chordState[part] = makeChord(pc, quality, label);
   if (part === 'juno') sendJunoChord();
   else {
     send({ type: 'chord', notes: current.notes });
@@ -3416,8 +3524,15 @@ function selectChord(r) {
   updateChordSound();
 }
 
+/* A chord lights the buttons that make it: in fifths and chromatic, both
+   buttons of a combination. */
 function renderKeys() {
-  for (const b of keyEls) b.classList.toggle('lit', +b.dataset.r === current.r && current.rows.has(+b.dataset.q));
+  const rows = ROWS_OF[current.quality] || [0];
+  for (const b of keyEls) {
+    const c = b.cell;
+    b.classList.toggle('lit', c.pc === current.pc &&
+      (layout.map.combo ? rows.includes(c.row) : c.q === current.quality));
+  }
 }
 
 /* The Juno reads the keys as functions, the way Chordtroller's ring hands over
@@ -3427,7 +3542,7 @@ const JUNO_FUNCTION = { maj: [0, false], min: [1, false], dom7: [2, false], dim:
                         maj7: [0, true], min7: [1, true] };
 function junoChord() {
   const c = chordState.juno, [func, combo] = JUNO_FUNCTION[c.quality];
-  return { root: ROOTS[c.r][1], func, ext: combo || junoState.ext, genre: junoState.genre, r: c.r, quality: c.quality };
+  return { root: c.pc, func, ext: combo || junoState.ext, genre: junoState.genre, r: c.pc, quality: c.quality };
 }
 function sendJunoChord() { send({ type: 'junoChord', ...junoChord() }); }
 
@@ -3441,12 +3556,12 @@ function renderReadout() {
   }
   if (inst === 'juno') {
     const c = junoChord();
-    chordNameEl.textContent = ROOTS[chordState.juno.r][0] + JunoEngine.shape(c.genre, c.func, c.ext)[0];
+    chordNameEl.textContent = chordState.juno.label + JunoEngine.shape(c.genre, c.func, c.ext)[0];
     subNameEl.textContent = phrase
       ? JunoEngine.styles()[phrase.style].name + ' · ' + JunoEngine.styles()[phrase.style].v[phrase.variation].name
       : 'Hold on the plate';
   } else {
-    chordNameEl.textContent = ROOTS[chordState.omni.r][0] + QUALITIES[chordState.omni.quality].suffix;
+    chordNameEl.textContent = chordState.omni.label + QUALITIES[chordState.omni.quality].suffix;
     subNameEl.textContent = '';
   }
 }
@@ -3461,7 +3576,7 @@ function chordVoicing(pc, quality) {
 }
 
 function sendCompChord() {
-  send({ type: 'compChord', ...chordVoicing(ROOTS[chordState.omni.r][1], chordState.omni.quality) });
+  send({ type: 'compChord', ...chordVoicing(chordState.omni.pc, chordState.omni.quality) });
 }
 
 /* Stopped, the chord section sounds while a chord button is held, the way the
@@ -3479,7 +3594,7 @@ keysEl.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   held.set(e.pointerId, b);
   b.classList.add('down');
-  selectChord(+b.dataset.r);
+  selectChord(b);
 });
 function releaseKey(e) {
   const b = held.get(e.pointerId);
@@ -3506,11 +3621,20 @@ for (let i = 0; i < STRINGS; i++) {
   stringEls.push(s);
 }
 
+// Spell the plate's notes the way the chord's key would: sharps from G major
+// and E minor round to C#, flats the other way.
+function sharpChord(c) {
+  if (c.label.includes('#')) return true;
+  if (c.label.includes('b')) return false;
+  const minor = c.quality === 'min' || c.quality === 'min7' || c.quality === 'dim';
+  return (minor ? [4, 11, 6, 1, 8] : [7, 2, 9, 4, 11, 6, 1, 8]).includes(c.pc);
+}
+
 function renderPlate() {
   const c = chordState.omni;
   c.notes.forEach((m, i) => {
     const el = stringEls[i];
-    el.querySelector('.note').textContent = noteName(m, ROOTS[c.r][0].includes('#'));
+    el.querySelector('.note').textContent = noteName(m, sharpChord(c));
     el.classList.toggle('root', i % 3 === 0);
   });
 }
@@ -4255,7 +4379,7 @@ const loopPlayBtn = document.getElementById('loopPlay');
 const loopClearBtn = document.getElementById('loopClear');
 const loopProgEl = document.getElementById('loopProg');
 const loopBarBtns = [...document.querySelectorAll('#loopBars button')];
-const ROWS_OF = { maj: [0], min: [1], dom7: [2], dim: [0, 1], maj7: [0, 2], min7: [1, 2] };
+
 
 document.getElementById('loopRec').addEventListener('click', () => {
   if (!transport.playing) setTransport(true);
@@ -4291,8 +4415,8 @@ function onLoop(m) {
 
 function onLoopEvent(e) {
   if (e.kind === 'chord') {
-    if (e.r == null) return;
-    chordState.juno = makeChord(e.r, e.quality, new Set(ROWS_OF[e.quality] || [0]));
+    if (e.root == null) return;
+    chordState.juno = makeChord(e.root, e.quality, labelFor(e.root, e.quality));
     if (inst === 'juno') { current = chordState.juno; renderKeys(); renderReadout(); }
   } else {
     if (phraseFingers.size) return;   // the finger is what is playing
@@ -4316,6 +4440,26 @@ renderTabsMuted();
 if (loopUI.state !== 'play' && loopUI.state !== 'off') loopUI.state = loopUI.events.length ? 'play' : 'empty';
 renderLoop();
 
+/* ---------- chord layout menu ---------- */
+const layoutSel = document.getElementById('layoutSel');
+// A chord from the loop is spelled the way the keys in front spell it.
+function labelFor(pc, quality) {
+  const c = layout.map && layout.map.cells.find((x) => x.pc === pc && (layout.map.combo || x.q === quality))
+         || layout.map && layout.map.cells.find((x) => x.pc === pc);
+  return c ? c.label : rootName(pc);
+}
+function setLayout(value) {
+  const [kind, tonic] = value.split(':');
+  layout.kind = kind; layout.tonic = +tonic || 0;
+  layoutSel.value = value;
+  // The chords playing keep playing, spelled the new way.
+  for (const part of ['omni', 'juno']) chordState[part].label = labelFor(chordState[part].pc, chordState[part].quality);
+  buildKeys();
+  renderReadout();
+  if (inst === 'omni') renderPlate();
+}
+layoutSel.addEventListener('change', () => { setLayout(layoutSel.value); save(); });
+
 // iOS still scrolls and zooms on touchmove unless it is cancelled outright.
 document.addEventListener('touchmove', (e) => {
   if (e.target.closest && e.target.closest('.ed-body')) return;   // the editor scrolls
@@ -4327,7 +4471,8 @@ document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.body.dataset.inst = 'omni';
 bpmOut.textContent = rhythm.bpm;
 metroBtn.setAttribute('aria-pressed', String(transport.metronome));
-selectChord(3);
+setLayout(savedLayout);
+setChord(0, 'maj');
 let lastTab = 'drums';
 try { lastTab = localStorage.getItem(STORE + '-tab') || 'drums'; } catch (e) {}
 setTab(tabEls.some((t) => t.dataset.tab === lastTab) ? lastTab : 'drums');
