@@ -62,6 +62,26 @@ ackordgenerator på sex Juno-röster.
   lägger grundtonen under frasen.
 - Tempot delas med Omnins rytm.
 
+## Synt edit
+
+Alla Omni-ljud är samma strängröst med olika rader ur `VoiceSpec.h`, och alla
+Juno-ljud är rader ur patchtabellen, så att redigera ett ljud är att ändra dess
+rad. **EDIT** i sidhuvudet byter vänstra halvan till redigering av ljudet som är
+valt; plattan till höger ligger kvar, så det går att spela medan man rattar, och
+**KLAR** går tillbaka.
+
+- **Omni:** vågform, pulsbredd, detune, ljushet (filtret som multipel av tonen),
+  attack, ringtid och nivå. Effekter: chorusens hastighet och mix.
+- **Juno:** såg, puls, sub, brus, pulsbredd, PWM och LFO; cutoff, resonans,
+  envelope-mängd, key track och HPF; attack, decay, sustain, release och nivå.
+  Effekter: delayns mängd, återkoppling och tid, som hör till patchen precis
+  som i Chordtroller, och chorusläget.
+- **Rummet** — storlek, dämpning och mix — delas av båda instrumenten.
+
+Reglagen i listan flyttas från där de står: dra i sidled för att ändra, upp
+och ner för att rulla. **Återställ ljud** och **Återställ effekter** längst ner
+tar tillbaka originalvärdena. Ändringarna sparas i webbläsaren.
+
 ## Vad som är portat och vad som är nytt
 
 Portat rakt av, med kommentarerna kvar:

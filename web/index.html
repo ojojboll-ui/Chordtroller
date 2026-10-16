@@ -232,6 +232,103 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 .fader .fval { font: 500 12px/1 var(--font-mono); color: var(--led); font-variant-numeric: tabular-nums; }
 .fader:focus-visible { outline: 2px solid var(--led); outline-offset: 2px; }
 
+/* ---------- synth editor ---------- */
+/* The editor takes the left half; the plate stays on the right so a sound can be
+   played while it is being turned. */
+#app.editing > .bar, #app.editing > .keys { display: none; }
+.editor {
+  grid-area: 1 / 1 / 3 / 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  min-width: 0;
+}
+.editor[hidden] { display: none; }
+.ed-head { display: flex; align-items: center; gap: 12px; }
+.ed-head .ed-title { min-width: 0; flex-wrap: wrap; row-gap: 4px; }
+.ed-title {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font: 400 18px/1.1 var(--font-display);
+  color: var(--led);
+  text-wrap: balance;
+}
+.ed-kicker {
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.ed-head .done { margin-left: auto; }
+.ed-resets { display: flex; flex-wrap: wrap; gap: 6px; grid-column: 1 / -1; padding-top: 4px; }
+.action {
+  font: 600 12px/1 var(--font-key);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: var(--bezel);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 8px 9px;
+  cursor: pointer;
+}
+.transport.done { color: var(--key-ink); background: var(--led); border-color: var(--led); }
+.ed-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 14px 18px;
+  align-content: start;
+  padding-bottom: 12px;
+}
+.ed-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.ed-group h3 {
+  margin: 0 0 2px;
+  display: flex;
+  gap: 8px;
+  font: 600 11px/1 var(--font-key);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.ed-group h3 .fxtag { color: var(--led); }
+.fader.rel { touch-action: pan-y; height: 32px; }
+.seg-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; }
+.seg-row .flabel {
+  font: 600 11px/1 var(--font-key);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.seg { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button {
+  font: 600 11px/1 var(--font-key);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: var(--bezel);
+  border: 0;
+  border-left: 1px solid var(--line);
+  padding: 9px 10px;
+  cursor: pointer;
+}
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--led); color: var(--key-ink); }
+
 /* ---------- rhythm ---------- */
 .rhythm {
   display: flex;
@@ -431,6 +528,7 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
       <option value="omni" selected>Omni</option>
       <option value="juno">Juno</option>
     </select>
+    <button class="transport" id="editBtn" type="button">Edit</button>
     <div class="readout" aria-live="polite">
       <span class="label">Ackord</span>
       <span id="chordName">C</span>
@@ -488,6 +586,18 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   </header>
 
   <div class="keys" id="keys" role="group" aria-label="Ackordknappar"></div>
+
+  <section class="editor" id="editor" hidden aria-labelledby="edName">
+    <div class="ed-head">
+      <h2 class="ed-title"><span class="ed-kicker">Synt edit</span> <span id="edName">Omni</span></h2>
+      <button class="transport done" id="edDone" type="button">Klar</button>
+    </div>
+    <div class="ed-body" id="edBody"></div>
+    <div class="ed-resets" hidden>
+      <button class="action" id="resetSound" type="button">Återställ ljud</button>
+      <button class="action" id="resetFx" type="button">Återställ effekter</button>
+    </div>
+  </section>
 
   <div class="side">
     <div class="plate omni-only" id="plate" role="application" aria-label="Strumplatta, dra fingret över strängarna"></div>
@@ -833,6 +943,12 @@ class Freeverb {
     this.wet1 = 0.5 * (0.30 * 3) * 2; this.wet2 = 0;
     this.dry = 1.0 * 2;
     this.on = true;
+  }
+  /* Room size, damping and wet level on juce::Reverb's scales, width kept at 1. */
+  setRoom(size, damping, wet) {
+    this.fb = size * 0.28 + 0.7;
+    this.d1 = damping * 0.4; this.d2 = 1 - this.d1;
+    this.wet1 = 0.5 * (wet * 3) * 2;
   }
   comb(c, x) {
     const o = c.b[c.i];
@@ -1380,11 +1496,14 @@ class OmniDSP {
       { name: 'HARPA',    wave: 'saw',   width: 0,    filter: 5,  decayScale: 1.15, attack: 0.0030, detune: 2 },
       { name: 'VIBRAFON', wave: 'sine',  width: 0,    filter: 12, decayScale: 1.60, attack: 0.0040, detune: 1.5 },
       { name: 'GITARR',   wave: 'pulse', width: 0.20, filter: 9,  decayScale: 0.70, attack: 0.0015, detune: 4 }
-    ];
+    ].map((v) => Object.assign(v, { level: 1 }));
   }
 
-  setVoice(i) {
-    this.spec = OmniDSP.voiceSpecs()[i] || OmniDSP.voiceSpecs()[0];
+  setVoice(i) { this.setSpec(OmniDSP.voiceSpecs()[i] || OmniDSP.voiceSpecs()[0]); }
+
+  /* A whole voice spec, as the editor sends it. */
+  setSpec(spec) {
+    this.spec = spec;
     this.decay = Math.pow(0.001, 1 / (this.sr * 4 * this.spec.decayScale));
     // Notes already ringing take the new length too.
     for (const v of this.voices) if (v.active) v.decay = this.decay;
@@ -1413,6 +1532,17 @@ class OmniDSP {
     else if (m.type === 'rhythm') this.comp.configure(m);
     else if (m.type === 'hold') this.comp.setHold(m.on);
     else if (m.type === 'voice') this.setVoice(m.index);
+    else if (m.type === 'voiceSpec') this.setSpec(m.spec);
+    else if (m.type === 'omniFx') { this.ens.rate = m.chorusRate; this.ens.mix = m.chorusMix; this.verb.setRoom(m.roomSize, m.roomDamp, m.roomWet); }
+    else if (m.type === 'junoPatchData') {
+      // An edited patch replaces the factory one in this thread's table.
+      JunoEngine.patches()[m.index] = m.patch;
+      if (m.index === this.juno.patchIndex) {
+        this.juno.setPatch(m.index);
+        this.delay.setTiming(this.juno.bpm, m.patch.delayDivision);
+        this.delay.setAmount(m.patch.delaySend, m.patch.delayFeedback);
+      }
+    }
     else if (m.type === 'instrument') { this.inst = m.name; if (m.name !== 'juno') this.juno.allOff(); }
     else if (m.type === 'junoChord') this.juno.setChord(m.root, m.func, m.ext, m.genre);
     else if (m.type === 'junoParams') this.setJuno(m);
@@ -1452,7 +1582,7 @@ class OmniDSP {
       }
       let sum = 0;
       for (let k = 0; k < 48; k++) { const v = this.voices[k]; if (v.active) sum += v.process(); }
-      const dry = sum * 0.07;
+      const dry = sum * 0.07 * this.spec.level;
       if (this.chorus) this.ens.process(dry, fr);
       else { this.ens.process(dry, fr); fr[0] = fr[1] = dry; }
       // The accompaniment skips the chorus, as the comp does in Chordtroller: the
@@ -1585,7 +1715,9 @@ async function startAudio() {
   pending.length = 0;
   sendCompChord();
   sendRhythm();
-  send({ type: 'voice', index: +document.getElementById('voice').value });
+  sendVoiceSpec();
+  sounds.juno.forEach((_, i) => sendJunoPatch(i));
+  sendOmniFx();
   send({ type: 'instrument', name: inst });
   sendJunoParams();
   sendJunoChord();
@@ -1631,7 +1763,7 @@ startBtn.addEventListener('click', () => {
   if (!rhythm.running) beatLed.classList.remove('on', 'one');
 });
 patternSel.addEventListener('change', () => { rhythm.pattern = patternSel.value; sendRhythm(); });
-document.getElementById('voice').addEventListener('change', (e) => send({ type: 'voice', index: +e.target.value }));
+document.getElementById('voice').addEventListener('change', () => sendVoiceSpec());
 
 /* ---------- instrument ---------- */
 
@@ -1664,7 +1796,7 @@ const patchSel = document.getElementById('patch');
 JunoEngine.patches().forEach((p, i) => patchSel.add(new Option(p.name.charAt(0) + p.name.slice(1).toLowerCase(), i)));
 patchSel.addEventListener('change', () => { junoState.patch = +patchSel.value; sendJunoParams(); });
 
-document.getElementById('junoChorus').addEventListener('change', (e) => { junoState.chorus = +e.target.value; sendJunoParams(); });
+document.getElementById('junoChorus').addEventListener('change', (e) => { junoState.chorus = +e.target.value; sendJunoParams(); save(); });
 
 for (const [id, key] of [['junoBassToggle', 'bass'], ['extToggle', 'ext'], ['holdToggle', 'hold']]) {
   const b = document.getElementById(id);
@@ -1679,6 +1811,8 @@ for (const [id, key] of [['junoBassToggle', 'bass'], ['extToggle', 'ext'], ['hol
 }
 
 /* A fader is a strip: the finger's position along it is the value. */
+const mainFaderShows = [];
+function refreshMainFaders() { mainFaderShows.forEach((f) => f()); }
 function makeFader(id, key) {
   const el = document.getElementById(id);
   const fill = el.querySelector('.fill'), val = el.querySelector('.fval');
@@ -1688,6 +1822,7 @@ function makeFader(id, key) {
     val.textContent = pct;
     el.setAttribute('aria-valuenow', String(pct));
   };
+  mainFaderShows.push(show);
   const setFrom = (x) => {
     const r = el.getBoundingClientRect();
     junoState[key] = Math.min(1, Math.max(0, (x - r.left) / r.width));
@@ -1731,6 +1866,261 @@ function showBeat(b) {
   clearTimeout(beatTimer);
   beatTimer = setTimeout(() => beatLed.classList.remove('on', 'one'), 90);
 }
+
+
+/* =============================================================================
+   Sounds and the synth editor. Every Omni sound is the same PluckVoice with a
+   different VoiceSpec row, and every Juno sound is a patch row, so editing a
+   sound is editing its row. Edits are kept in this browser.
+   ============================================================================= */
+
+const clone = (x) => JSON.parse(JSON.stringify(x));
+// Taken before anything can edit the tables, so a reset has the originals.
+const FACTORY = {
+  omni: clone(OmniDSP.voiceSpecs()),
+  juno: clone(JunoEngine.patches()),
+  fx: { chorusRate: 0.5, chorusMix: 0.45, roomSize: 0.62, roomDamp: 0.42, roomWet: 0.30 },
+  junoChorus: 1
+};
+const sounds = { omni: clone(FACTORY.omni), juno: clone(FACTORY.juno) };
+const fxState = clone(FACTORY.fx);
+
+const STORE = 'chordtroller-web-sounds-v1';
+try {
+  const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
+  if (saved) {
+    (saved.omni || []).forEach((v, i) => { if (sounds.omni[i]) Object.assign(sounds.omni[i], v); });
+    (saved.juno || []).forEach((v, i) => { if (sounds.juno[i]) Object.assign(sounds.juno[i], v); });
+    Object.assign(fxState, saved.fx || {});
+  }
+} catch (e) {}
+
+let saveTimer = 0;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem(STORE, JSON.stringify({ omni: sounds.omni, juno: sounds.juno, fx: fxState })); } catch (e) {}
+  }, 300);
+}
+
+const voiceSel = document.getElementById('voice');
+function sendVoiceSpec() { send({ type: 'voiceSpec', spec: sounds.omni[+voiceSel.value] }); }
+function sendJunoPatch(i) { send({ type: 'junoPatchData', index: i, patch: sounds.juno[i] }); }
+function sendOmniFx() { send({ type: 'omniFx', ...fxState }); }
+
+const pct = (v) => Math.round(v * 100) + ' %';
+const secs = (v) => (v < 0.1 ? (v * 1000).toFixed(v < 0.01 ? 1 : 0) + ' ms' : v.toFixed(2) + ' s');
+const hz = (v) => v.toFixed(2) + ' Hz';
+const title = (name) => name.charAt(0) + name.slice(1).toLowerCase();
+
+/* What the editor shows. `obj` says where a value lives: the sound being
+   edited (default), the shared effects, or the Juno's live controls. */
+const ROOM = { group: 'Rum', fx: true, items: [
+  { obj: 'fx', label: 'Storlek', key: 'roomSize', min: 0, max: 1, fmt: pct },
+  { obj: 'fx', label: 'Dämpning', key: 'roomDamp', min: 0, max: 1, fmt: pct },
+  { obj: 'fx', label: 'Mix', key: 'roomWet', min: 0, max: 1, fmt: pct } ] };
+
+const EDIT = {
+  omni: [
+    { group: 'Oscillator', items: [
+      { kind: 'choice', label: 'Vågform', key: 'wave', options: [['pulse', 'Puls'], ['saw', 'Såg'], ['sine', 'Sinus']] },
+      { label: 'Pulsbredd', key: 'width', min: 0.05, max: 0.95, fmt: pct, when: (o) => o.wave === 'pulse' },
+      { label: 'Detune', key: 'detune', min: 0, max: 20, fmt: (v) => v.toFixed(1) + ' cent' } ] },
+    { group: 'Ton', items: [
+      { label: 'Ljushet', key: 'filter', min: 1, max: 24, log: true, fmt: (v) => '×' + v.toFixed(1) },
+      { label: 'Attack', key: 'attack', min: 0.0005, max: 0.05, log: true, fmt: secs },
+      { label: 'Ringtid', key: 'decayScale', min: 0.075, max: 2.5, log: true, fmt: (v) => (4 * v).toFixed(1) + ' s' },
+      { label: 'Nivå', key: 'level', min: 0, max: 2, fmt: pct } ] },
+    { group: 'Chorus', fx: true, items: [
+      { obj: 'fx', label: 'Hastighet', key: 'chorusRate', min: 0.05, max: 3, log: true, fmt: hz },
+      { obj: 'fx', label: 'Mix', key: 'chorusMix', min: 0, max: 1, fmt: pct } ] },
+    ROOM
+  ],
+  juno: [
+    { group: 'Oscillator', items: [
+      { label: 'Såg', key: 'saw', min: 0, max: 1, fmt: pct },
+      { label: 'Puls', key: 'pulse', min: 0, max: 1, fmt: pct },
+      { label: 'Sub', key: 'sub', min: 0, max: 1, fmt: pct },
+      { label: 'Brus', key: 'noise', min: 0, max: 1, fmt: pct },
+      { label: 'Pulsbredd', key: 'pulseWidth', min: 0.05, max: 0.95, fmt: pct },
+      { label: 'PWM', key: 'pwmDepth', min: 0, max: 1, fmt: pct },
+      { label: 'LFO', key: 'lfoRate', min: 0.05, max: 10, log: true, fmt: hz } ] },
+    { group: 'Filter', items: [
+      { obj: 'juno', label: 'Cutoff', key: 'cutoff', min: 0, max: 1, fmt: pct },
+      { obj: 'juno', label: 'Resonans', key: 'resonance', min: 0, max: 1, fmt: pct },
+      { label: 'Envelope', key: 'envAmount', min: 0, max: 1, fmt: pct },
+      { label: 'Key track', key: 'keyTrack', min: 0, max: 1, fmt: pct },
+      { label: 'HPF', key: 'hpf', min: 0, max: 1, fmt: pct } ] },
+    { group: 'Envelope', items: [
+      { label: 'Attack', key: 'attack', min: 0.001, max: 3, log: true, fmt: secs },
+      { label: 'Decay', key: 'decay', min: 0.02, max: 5, log: true, fmt: secs },
+      { label: 'Sustain', key: 'sustain', min: 0, max: 1, fmt: pct },
+      { label: 'Release', key: 'release', min: 0.02, max: 5, log: true, fmt: secs },
+      { label: 'Nivå', key: 'level', min: 0, max: 1, fmt: pct } ] },
+    { group: 'Delay', fx: true, items: [
+      { label: 'Mängd', key: 'delaySend', min: 0, max: 1, fmt: pct },
+      { label: 'Återkoppling', key: 'delayFeedback', min: 0, max: 0.85, fmt: pct },
+      { kind: 'choice', label: 'Tid', key: 'delayDivision', options: [[0, '1/8'], [1, '1/8.'], [2, '1/4']] } ] },
+    { group: 'Chorus', fx: true, items: [
+      { kind: 'choice', obj: 'juno', label: 'Läge', key: 'chorus', options: [[0, 'Av'], [1, 'I'], [2, 'II'], [3, 'I+II']] } ] },
+    ROOM
+  ]
+};
+
+function soundBeingEdited() { return inst === 'omni' ? sounds.omni[+voiceSel.value] : sounds.juno[junoState.patch]; }
+function targetOf(item) { return item.obj === 'fx' ? fxState : item.obj === 'juno' ? junoState : soundBeingEdited(); }
+
+/* Hands a change to the engine, wherever the value lives. */
+function commit(item) {
+  if (item.obj === 'fx') sendOmniFx();
+  else if (item.obj === 'juno') {
+    sendJunoParams();
+    refreshMainFaders();
+    document.getElementById('junoChorus').value = String(junoState.chorus);
+  } else if (inst === 'omni') sendVoiceSpec();
+  else sendJunoPatch(junoState.patch);
+  save();
+}
+
+/* An editor fader is moved, not touched: dragging sideways changes the value
+   from where it was, and dragging up or down scrolls the list instead. */
+function editFader(item) {
+  const el = document.createElement('div');
+  el.className = 'fader rel';
+  el.setAttribute('role', 'slider');
+  el.tabIndex = 0;
+  el.setAttribute('aria-label', item.label);
+  el.innerHTML = '<span class="fill"></span><span class="flabel"></span><span class="fval"></span>';
+  el.querySelector('.flabel').textContent = item.label;
+  const fill = el.querySelector('.fill'), val = el.querySelector('.fval');
+  const toNorm = (v) => item.log ? Math.log(v / item.min) / Math.log(item.max / item.min) : (v - item.min) / (item.max - item.min);
+  const fromNorm = (t) => item.log ? item.min * Math.pow(item.max / item.min, t) : item.min + t * (item.max - item.min);
+  const clamp01 = (t) => Math.min(1, Math.max(0, t));
+  const show = () => {
+    const v = targetOf(item)[item.key];
+    fill.style.width = (clamp01(toNorm(v)) * 100) + '%';
+    val.textContent = item.fmt(v);
+    el.setAttribute('aria-valuetext', item.fmt(v));
+  };
+  const setNorm = (t) => { targetOf(item)[item.key] = fromNorm(clamp01(t)); show(); commit(item); };
+  let drag = null;
+  el.addEventListener('pointerdown', (e) => {
+    drag = { id: e.pointerId, x: e.clientX, t: clamp01(toNorm(targetOf(item)[item.key])), moving: false };
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!drag || drag.id !== e.pointerId) return;
+    const dx = e.clientX - drag.x;
+    if (!drag.moving) {
+      if (Math.abs(dx) < 6) return;
+      drag.moving = true;
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+    setNorm(drag.t + dx / el.getBoundingClientRect().width);
+  });
+  const end = () => { drag = null; };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('keydown', (e) => {
+    const d = { ArrowRight: 0.02, ArrowUp: 0.02, ArrowLeft: -0.02, ArrowDown: -0.02 }[e.key];
+    if (d === undefined) return;
+    e.preventDefault();
+    setNorm(clamp01(toNorm(targetOf(item)[item.key])) + d);
+  });
+  show();
+  return el;
+}
+
+function editChoice(item) {
+  const row = document.createElement('div');
+  row.className = 'seg-row';
+  row.innerHTML = '<span class="flabel"></span><div class="seg" role="group"></div>';
+  row.querySelector('.flabel').textContent = item.label;
+  const seg = row.querySelector('.seg');
+  seg.setAttribute('aria-label', item.label);
+  for (const [value, label] of item.options) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.setAttribute('aria-pressed', String(targetOf(item)[item.key] === value));
+    b.addEventListener('click', () => {
+      const t = targetOf(item);
+      t[item.key] = value;
+      // Harpa and vibrafon carry no pulse width; a pulse needs one to sound.
+      if (item.key === 'wave' && value === 'pulse' && !(t.width >= 0.05)) t.width = 0.35;
+      commit(item);
+      renderEditor();   // a choice can show or hide other controls
+    });
+    seg.appendChild(b);
+  }
+  return row;
+}
+
+const appEl = document.getElementById('app');
+const editorEl = document.getElementById('editor');
+const edBody = document.getElementById('edBody');
+const edName = document.getElementById('edName');
+const resetRow = document.querySelector('.ed-resets');
+
+function renderEditor() {
+  const sound = soundBeingEdited();
+  edName.textContent = (inst === 'omni' ? 'Omni · ' : 'Juno · ') + title(sound.name);
+  const scroll = edBody.scrollTop;
+  edBody.textContent = '';
+  for (const g of EDIT[inst]) {
+    const sec = document.createElement('div');
+    sec.className = 'ed-group';
+    const h = document.createElement('h3');
+    h.textContent = g.group;
+    if (g.fx) { const t = document.createElement('span'); t.className = 'fxtag'; t.textContent = 'Effekt'; h.appendChild(t); }
+    sec.appendChild(h);
+    for (const item of g.items) {
+      if (item.when && !item.when(sound)) continue;
+      sec.appendChild(item.kind === 'choice' ? editChoice(item) : editFader(item));
+    }
+    edBody.appendChild(sec);
+  }
+  edBody.appendChild(resetRow);   // last, after the effects
+  resetRow.hidden = false;
+  edBody.scrollTop = scroll;
+}
+
+function openEditor() {
+  appEl.classList.add('editing');
+  editorEl.hidden = false;
+  renderEditor();
+}
+function closeEditor() {
+  appEl.classList.remove('editing');
+  editorEl.hidden = true;
+}
+document.getElementById('editBtn').addEventListener('click', openEditor);
+document.getElementById('edDone').addEventListener('click', closeEditor);
+
+document.getElementById('resetSound').addEventListener('click', () => {
+  const i = inst === 'omni' ? +voiceSel.value : junoState.patch;
+  const fresh = clone(FACTORY[inst][i]);
+  // Delay belongs to the Juno patch but lives under effects, so it stays put here.
+  if (inst === 'juno') for (const k of ['delaySend', 'delayFeedback', 'delayDivision']) fresh[k] = sounds.juno[i][k];
+  Object.assign(sounds[inst][i], fresh);
+  if (inst === 'juno') { junoState.cutoff = 0.6; junoState.resonance = 0.15; sendJunoParams(); refreshMainFaders(); }
+  commit({});
+  renderEditor();
+});
+
+document.getElementById('resetFx').addEventListener('click', () => {
+  Object.assign(fxState, clone(FACTORY.fx));
+  sendOmniFx();
+  if (inst === 'juno') {
+    const i = junoState.patch;
+    for (const k of ['delaySend', 'delayFeedback', 'delayDivision']) sounds.juno[i][k] = FACTORY.juno[i][k];
+    sendJunoPatch(i);
+    junoState.chorus = FACTORY.junoChorus;
+    document.getElementById('junoChorus').value = String(junoState.chorus);
+    sendJunoParams();
+  }
+  save();
+  renderEditor();
+});
 
 /* =============================================================================
    Chord keys
@@ -2007,7 +2397,10 @@ phrasesEl.addEventListener('pointerup', liftPhrase);
 phrasesEl.addEventListener('pointercancel', liftPhrase);
 
 // iOS still scrolls and zooms on touchmove unless it is cancelled outright.
-document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', (e) => {
+  if (e.target.closest && e.target.closest('.ed-body')) return;   // the editor scrolls
+  e.preventDefault();
+}, { passive: false });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
 // Open on C major, the way the instrument wakes up.
