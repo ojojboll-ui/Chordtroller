@@ -147,6 +147,11 @@ two tabs share it, and it is kept in the browser.
   the middle row the sevenths, and the bottom row colour chords: the
   dominants leading to IV, ii, V and vi, and iv, ♭VI and ♭VII borrowed from the
   minor key. Everything fits together, so it is hard to play a wrong chord.
+- **Minor key** (Key Am to Key Ebm) — the same for a minor key, as minor is
+  usually played: natural minor with the major V and the leading-tone chord
+  from harmonic minor. Top row i ii° III iv V VI VII, then the sevenths, then
+  colour chords: the Picardy major I, the dominants leading to iv and V, the
+  Neapolitan ♭II, the Dorian IV, the natural minor v and vii°.
 - **Tonnetz** — three strips of the Tonnetz. Along a row, each chord shares two
   notes with the next, major and minor alternating a third apart (C, Em, G,
   Bm …), so moving along a row changes one note at a time. Each major chord sits
@@ -193,14 +198,14 @@ The MIXER tab has a channel per instrument: DRUMS, 303, JUNO and OMNICHORD.
   towards 35 Hz, right of centre a high-pass opening towards 14 kHz, with a
   resonance that grows the further it goes. The centre is off, with a small dead
   zone.
-- A double tap puts the volume or the filter back. **RESET MIX** puts every
-  channel back.
-- **TRANSPOSE** moves everything with a pitch — the Omnichord's strings and
-  comp, the Juno and the 303 — up or down in semitones, an octave each way. The
-  buttons, the plate and the 303's grid keep their names; only what sounds
-  moves, and a loop recorded before plays in the new key. A tap on the value
-  sets it back to 0. The drums are not moved. It is not part of RESET MIX, and
-  it is kept in the browser.
+- **KEY**, the narrow fader beside the volume, transposes the channel in
+  semitones, an octave up or down, from where the finger is: a slide changes
+  key in one move. The dashed line is 0. The Omnichord moves its strings and
+  comp, the Juno and the 303 their notes, and the drums are retuned, every piece
+  together. The buttons, the plate and the 303's grid keep their names; only
+  what sounds moves, and a loop recorded before plays in the new key.
+- A double tap puts the volume, the transpose or the filter back. **RESET MIX**
+  puts every channel back, transpose included.
 
 ## Synth edit
 
