@@ -216,14 +216,21 @@ bow stops on it.
   sideways draws the bow, right down-bow and left up-bow, faster the further
   out, which is louder. Up adds vibrato, down tremolo. Lift the finger and the
   bow stops on the string. **PRESSURE** is the index finger on the bow: low is
-  the airy sound of a bow too light to grip, the middle a clean tone, the top
-  leans in until it rasps.
+  the airy sound of a bow too light to grip, the middle a clean tone, and the
+  top leans in a little further. Chordtroller's rasp on the top of the pressure
+  is left out.
 - **Instrument, key and scale** are in the menus: violin, viola, cello and
   double bass; major, minor, harmonic minor, the two pentatonics, blues, whole
   tone, freygish and chromatic. **PIZZ** plucks instead: a tap on the pad
   plucks, harder the higher it lands, and a note on the fingerboard plucks as
   it is pressed. **SECTION** is four players, each a little apart in tuning,
   timing and place.
+- **DRONE** holds the note under the finger on a second string, bowed and
+  plucked with the first, until it is pressed again; its note is outlined on
+  the fingerboard. Play a tune over an open fifth, or hold the tonic under a
+  melody. A new instrument, key or scale moves it to the new lowest tonic.
+- **SORDINO** is the mute clamped on the bridge: it damps the bridge hill and
+  everything above it, for the veiled, distant sound.
 - **Recording** works as on the Omnichord: the note, the bow and the plucks
   are recorded where they were played, so a stroke plays back as it was drawn.
 - The violin goes into the room with the Omnichord and the Juno.
@@ -299,8 +306,8 @@ Ported as is, with the comments kept:
 - the room is Freeverb with the same parameters `juce::Reverb` has in the
   processor
 - voice allocation from `StrumEngine` — a ringing string takes back its own note
-- `BowedString.h` and `StringEngine.h` — the violin, without the drone,
-  the sordino and MIDI out
+- `BowedString.h` and `StringEngine.h` — the violin, without the rasp and
+  MIDI out
 
 The names of sounds, phrases and controls are in English here; Chordtroller
 itself uses Swedish names.

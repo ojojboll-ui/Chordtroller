@@ -235,6 +235,8 @@ body {
 .fb-note small { font-size: .62em; font-weight: 500; opacity: .6; margin-left: 1px; }
 .fb-note.tonic { background: var(--key-major); }
 .fb-note.down { transform: translateY(2px); box-shadow: 0 1px 0 var(--key-shadow); }
+.seg.vtoggles button { padding: 8px 8px; }
+.fb-note.drone { box-shadow: 0 3px 0 var(--key-shadow), inset 0 0 0 3px var(--led); }
 .fb-note.lit::after { content: ""; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--led); box-shadow: 0 0 6px var(--led); }
 .bowpad {
   position: relative;
@@ -824,7 +826,7 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 [data-inst]:not([data-inst="drums"]) .drums-only,
 [data-inst]:not([data-inst="mix"]) .mix-only,
 [data-inst]:not([data-inst="violin"]) .violin-only,
-[data-inst="violin"] .keys, [data-inst="violin"] #editBtn,
+[data-inst="violin"] .keys, [data-inst="violin"] #editBtn, [data-inst="violin"] .readout,
 [data-inst]:not([data-inst="omni"]):not([data-inst="juno"]) .keys-only,
 [data-inst="acid"] .keys, [data-inst="drums"] .keys, [data-inst="mix"] .keys,
 [data-inst="acid"] .readout, [data-inst="drums"] .readout, [data-inst="mix"] .readout,
@@ -885,6 +887,7 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   [data-inst="acid"] #app { --side: 33%; }
   [data-inst="violin"] #app { --side: 32%; }
   .bar .metro { padding: 7px 6px; font-size: 10px; letter-spacing: .04em; gap: 5px; }
+  .bar .seg.vtoggles button { padding: 7px 5px; font-size: 10px; letter-spacing: .03em; }
   .row3 .fader { height: 30px; padding: 0 6px; }
   .bar .row3 { gap: 4px; }
   .row3 .filters { flex: 1 1 0; gap: 4px; }
@@ -983,14 +986,14 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
           <option value="waltz">Waltz</option>
         </select>
         <button class="toggle" id="chordToggle" type="button" aria-pressed="false">Chords</button>
-        <button class="toggle" id="bassToggle" type="button" aria-pressed="false"><span class="wide">Auto </span>bass</button>
+        <button class="toggle" id="bassToggle" type="button" aria-pressed="false"><span><span class="wide">Auto </span>bass</span></button>
       </div>
       <div class="fx juno-only">
         <label class="sr" for="genre">Genre</label>
         <select id="genre" class="sel"></select>
         <label class="sr" for="patch">Sound</label>
         <select id="patch" class="sel"></select>
-        <button class="toggle" id="extToggle" type="button" aria-pressed="false">Ext<span class="wide">ended</span></button>
+        <button class="toggle" id="extToggle" type="button" aria-pressed="false"><span>Ext<span class="wide">ended</span></span></button>
       </div>
       <div class="fx acid-only">
         <label class="sr" for="acidPatternSel">Pattern</label>
@@ -1037,8 +1040,12 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
         <select id="violinKey" class="sel"></select>
         <label class="sr" for="violinScale">Scale</label>
         <select id="violinScale" class="sel"></select>
-        <button class="toggle" id="pizzToggle" type="button" aria-pressed="false">Pizz</button>
-        <button class="toggle" id="sectionToggle" type="button" aria-pressed="false">Section</button>
+        <div class="seg vtoggles" role="group" aria-label="Playing">
+          <button id="pizzToggle" type="button" aria-pressed="false" aria-label="Pizzicato">Pizz</button>
+          <button id="sectionToggle" type="button" aria-pressed="false" aria-label="Section of four players">Section</button>
+          <button id="droneToggle" type="button" aria-pressed="false" aria-label="Drone: hold the note under the finger on a second string">Drone</button>
+          <button id="sordinoToggle" type="button" aria-pressed="false" aria-label="Sordino: the mute on the bridge">Sordino</button>
+        </div>
       </div>
       <div class="fx mix-only">
         <button class="action" id="mixReset" type="button">Reset mix</button>
@@ -2420,20 +2427,24 @@ class BowedString {
 /* The wooden box: a bank of resonances for the plates and the air inside,
    the violin's — A0, the corpus mode, B1- and B1+, a scatter above and the
    bridge hill round 2.5 kHz — scaled down for the larger instruments, plus a
-   highpassed direct path. */
+   highpassed direct path. The sordino is a weight clamped on the bridge: it
+   damps the bridge hill and everything above it, which is the whole of its
+   sound. */
 class StringBody {
-  constructor(sr) { this.sr = sr; this.modes = []; for (let i = 0; i < 13; i++) this.modes.push({ b0: 0, b2: 0, a1: 0, a2: 0, gain: 0, z1: 0, z2: 0 }); this.configure(0); this.reset(); }
+  constructor(sr) { this.sr = sr; this.modes = []; for (let i = 0; i < 13; i++) this.modes.push({ b0: 0, b2: 0, a1: 0, a2: 0, gain: 0, z1: 0, z2: 0 }); this.configure(0, false); this.reset(); }
   reset() {
     for (const m of this.modes) m.z1 = m.z2 = 0;
     this.hp1 = this.hp2 = this.hpOut1 = this.hpOut2 = 0; this.lowpass = 0;
   }
-  configure(instrument) {
+  configure(instrument, sordino) {
     const violin = [[275, 14, 0.90, false], [405, 18, 0.30, false], [460, 22, 1.10, false], [540, 22, 1.00, false],
                     [700, 16, 0.45, false], [860, 16, 0.40, false], [1050, 14, 0.45, false], [1320, 12, 0.40, false],
                     [1650, 10, 0.40, true], [2100, 6, 0.60, true], [2650, 6, 0.70, true], [3300, 6, 0.45, true], [4600, 4, 0.22, true]];
     const s = StringEngine.instruments()[instrument], sr = this.sr;
     violin.forEach(([hz, q, gain, hill], i) => {
-      hz = Math.min(hz * (hill ? s.bodyHigh : s.bodyLow), 0.45 * sr);
+      hz *= hill ? s.bodyHigh : s.bodyLow;
+      if (sordino && hill) { hz *= 0.9; gain *= 0.3; }
+      hz = Math.min(hz, 0.45 * sr);
       const w = 2 * Math.PI * hz / sr, alpha = Math.sin(w) / (2 * q), a0 = 1 + alpha, m = this.modes[i];
       m.b0 = alpha / a0; m.b2 = -alpha / a0; m.a1 = -2 * Math.cos(w) / a0; m.a2 = (1 - alpha) / a0; m.gain = gain;
     });
@@ -2441,7 +2452,7 @@ class StringBody {
     const w = 2 * Math.PI * 190 * s.bodyLow / sr, alpha = Math.sin(w) / (2 * 0.7071), cw = Math.cos(w), a0 = 1 + alpha;
     this.hpB0 = (1 + cw) * 0.5 / a0; this.hpB1 = -(1 + cw) / a0; this.hpB2 = this.hpB0;
     this.hpA1 = -2 * cw / a0; this.hpA2 = (1 - alpha) / a0;
-    this.lowpassCoef = 1 - Math.exp(-2 * Math.PI * Math.min(7500 * s.bodyHigh, 0.45 * sr) / sr);
+    this.lowpassCoef = 1 - Math.exp(-2 * Math.PI * Math.min((sordino ? 3500 : 7500) * s.bodyHigh, 0.45 * sr) / sr);
   }
   process(x) {
     const direct = this.hpB0 * x + this.hpB1 * this.hp1 + this.hpB2 * this.hp2 - this.hpA1 * this.hpOut1 - this.hpA2 * this.hpOut2;
@@ -2489,26 +2500,27 @@ class StringEngine {
     for (let i = 0; i < 4; i++) {
       const angle = (pan[i] + 1) * 0.25 * Math.PI;
       this.players.push({
-        str: new BowedString(sr * this.os),
+        str: new BowedString(sr * this.os), drone: new BowedString(sr * this.os),
         detuneCents: detune[i], driftHz: drift[i], rateScale: rate[i], speedScale: speed[i], forceScale: force[i],
-        pluckDelay: delay[i], panLeft: Math.cos(angle) * Math.SQRT2, panRight: Math.sin(angle) * Math.SQRT2,
+        droneRinging: 0, pluckDelay: delay[i], panLeft: Math.cos(angle) * Math.SQRT2, panRight: Math.sin(angle) * Math.SQRT2,
         bowCoef: 1 - Math.exp(-1 / (this.bowLag[i] * sr)),
         vibratoPhase: i ? this.noise01() : 0, driftPhase: this.noise01(), tremoloPhase: i ? this.noise01() : 0,
-        steady: 0, tremolo: 0, grain: 0, pluckStrength: 0, pluckIn: -1, rattlePhase: 0, follow: 0
+        steady: 0, tremolo: 0, grain: 0, pluckStrength: 0, pluckIn: -1
       });
     }
     this.bodyL = new StringBody(sr); this.bodyR = new StringBody(sr);
-    this.inst = 0; this.section = false; this.pizzicato = false;
+    this.inst = 0; this.section = false; this.pizzicato = false; this.sordino = false;
     this.noteTarget = 62; this.noteNow = 62;
+    // A second string held at one note, bowed or plucked with the first.
+    this.droneOn = false; this.droneTarget = 55; this.droneNow = 55;
     this.glideAmount = 0; this.glideCoef = 1;
     this.bowStick = 0; this.bowTargetSpeed = 0; this.steadyTarget = 0; this.tremoloAmp = 0; this.tremoloRate = 5;
     this.vibratoTarget = 0; this.vibratoNow = 0; this.tremoloTarget = 0;
-    this.pressureAmount = 0.5; this.relativeForce = StringEngine.forceAt(0.5); this.skorr = 0;
-    this.rattleHz = 30; this.restTarget = 0; this.restNow = 0; this.bowPosition = 0.1;
+    this.pressureAmount = 0.5; this.relativeForce = StringEngine.forceAt(0.5);
+    this.restTarget = 0; this.restNow = 0; this.bowPosition = 0.1;
     this.settle = 1; this.settleCoef = 0.001; this.lastStroke = 0;
     this.controlCoef = 1 - Math.exp(-1 / (0.006 * sr));
     this.restCoef = 1 - Math.exp(-1 / (0.015 * sr));
-    this.followCoef = 1 - Math.exp(-1 / (0.080 * sr));
     this.levelFall = Math.exp(-1 / (0.25 * sr));
     this.dcCoef = 1 - 2 * Math.PI * 12 / sr;
     this.dcL = this.dcR = this.dcInL = this.dcInR = 0; this.level = 0;
@@ -2523,7 +2535,8 @@ class StringEngine {
 
   /* Pressure is laid over the regions the model plays in: the first quarter
      the surface sound of a bow too light to grip, the middle half a clean
-     tone, the last quarter leaning in while the rasp comes. */
+     tone, the last quarter leaning in a little further. (Chordtroller puts a
+     rasp on that last quarter; it is left out here.) */
   static forceAt(x) {
     const k = [0.12, 0.30, 0.68, 0.78], b = (p, q, t) => p * Math.pow(q / p, t);
     x = Math.min(1, Math.max(0, x));
@@ -2532,7 +2545,9 @@ class StringEngine {
     return b(k[2], k[3], (x - 0.75) / 0.25);
   }
 
-  setInstrument(i) { this.inst = ((i % 4) + 4) % 4; this.bodyL.configure(this.inst); this.bodyR.configure(this.inst); }
+  setInstrument(i) { this.inst = ((i % 4) + 4) % 4; this.bodyL.configure(this.inst, this.sordino); this.bodyR.configure(this.inst, this.sordino); }
+  setSordino(on) { this.sordino = !!on; this.setInstrument(this.inst); }
+  setDrone(on, midi) { this.droneOn = !!on; if (on) { this.droneTarget = midi; if (!this.wasDrone) this.droneNow = midi; } this.wasDrone = this.droneOn; this.quiet = 0; }
   setSection(on) { this.section = !!on; }
   setPizzicato(on) { this.pizzicato = !!on; }
   setNote(midi) { this.noteTarget = midi; }
@@ -2548,7 +2563,6 @@ class StringEngine {
   setPressure(a) {
     this.pressureAmount = Math.min(1, Math.max(0, a));
     this.relativeForce = StringEngine.forceAt(this.pressureAmount);
-    this.skorr = Math.min(1, Math.max(0, (this.pressureAmount - 0.75) / 0.25));
   }
   pluck(strength) {
     strength = Math.min(1, Math.max(0.05, strength));
@@ -2560,7 +2574,7 @@ class StringEngine {
     this.quiet = 0;
   }
   allOff() {
-    for (const p of this.players) { p.str.reset(); p.steady = p.tremolo = 0; p.pluckIn = -1; }
+    for (const p of this.players) { p.str.reset(); p.drone.reset(); p.steady = p.tremolo = 0; p.pluckIn = -1; }
     this.bodyL.reset(); this.bodyR.reset();
     this.dcL = this.dcR = this.dcInL = this.dcInR = 0; this.level = 0;
   }
@@ -2591,11 +2605,12 @@ class StringEngine {
     // A bow resting on the string stops it in about the same time on any string.
     this.restTarget = (!this.pizzicato && this.bowTargetSpeed <= 0) ? Math.min(0.45, Math.max(0.02, 22 / hz)) : 0;
     this.bowPosition = s.bowPoint;
-    this.rattleHz = hz / Math.max(1, Math.round(hz / 28));
+    const dhz = StringEngine.hz(this.droneTarget);
     for (let i = 0; i < 4; i++) {
       const p = this.players[i];
       p.bowCoef = 1 - Math.exp(-1 / ((this.bowLag[i] + 4 / hz) * this.sr));
       p.str.setLosses(hz, this.ringFor(hz), Math.min(s.lowpassHz, 12 * hz));
+      p.drone.setLosses(dhz, this.ringFor(dhz), Math.min(s.lowpassHz, 12 * dhz));
     }
     if (this.bowTargetSpeed > 0) this.quiet = 0;
   }
@@ -2605,6 +2620,7 @@ class StringEngine {
     if (this.quiet > this.sr) { out[0] = out[1] = 0; return; }
     const sr = this.sr, TWO_PI = 2 * Math.PI;
     this.noteNow += (this.noteTarget - this.noteNow) * this.glideCoef;
+    this.droneNow += (this.droneTarget - this.droneNow) * 0.02;
     this.vibratoNow += (this.vibratoTarget - this.vibratoNow) * this.controlCoef;
     this.restNow += (this.restTarget - this.restNow) * this.restCoef;
     const vibratoCents = StringEngine.ratioFromZero(3, 32, this.vibratoNow);
@@ -2620,6 +2636,7 @@ class StringEngine {
       const cents = (this.section ? p.detuneCents + 2 * Math.sin(TWO_PI * p.driftPhase) : 0)
                   + vibratoCents * Math.sin(TWO_PI * p.vibratoPhase);
       p.str.setTuning(StringEngine.hz(this.noteNow + cents * 0.01), this.bowPosition);
+      if (this.droneOn) p.drone.setTuning(StringEngine.hz(this.droneNow + (this.section ? p.detuneCents * 0.01 : 0)), this.bowPosition);
       p.steady += (this.steadyTarget * p.speedScale - p.steady) * p.bowCoef;
       p.tremolo += (this.tremoloAmp * p.speedScale - p.tremolo) * p.bowCoef;
       let velocity = p.steady;
@@ -2640,24 +2657,22 @@ class StringEngine {
       p.grain += (this.noise() * 0.02 - p.grain) * 0.15;   // rosin
       if (p.pluckIn === 0) {
         const width = Math.round(sr * this.os * (0.0028 - 0.0018 * p.pluckStrength));
-        p.str.pluck(1.2 * Math.pow(10, (p.pluckStrength - 1) * 24 / 20), width);
+        const gain = 1.2 * Math.pow(10, (p.pluckStrength - 1) * 24 / 20);
+        p.str.pluck(gain, width);
+        if (this.droneOn) p.drone.pluck(gain * 0.8, width);
       }
       if (p.pluckIn >= 0) p.pluckIn--;
+      // The drone is bowed with the melody; switched off it is let go and
+      // rings out, and once quiet it is not run at all.
+      const droneBowed = this.droneOn && !this.pizzicato;
+      const droneRun = this.droneOn || p.droneRinging > 0;
       let s = 0;
-      for (let k = 0; k < this.os; k++) s += p.str.process(velocity, force, this.restNow, p.grain);
-      s /= this.os;
-      // The rasp in the last quarter of the pressure: an asymmetric buzz
-      // pulsing at a rate that divides the pitch, so it rasps with a pitch.
-      p.follow += (Math.abs(s) - p.follow) * this.followCoef;
-      if (this.skorr > 0) {
-        p.rattlePhase += this.rattleHz / sr; if (p.rattlePhase >= 1) p.rattlePhase -= 1;
-        const pulse = 0.5 + 0.5 * Math.cos(TWO_PI * p.rattlePhase);
-        const amount = this.skorr * this.settle * (0.4 + 0.6 * pulse);
-        const scale = Math.max(p.follow, 1e-4) * 1.6;
-        const x = s / scale * (1 + 4 * amount);
-        const shaped = (Math.tanh(x + 0.4) - Math.tanh(0.4)) * scale;
-        s += amount * (shaped - s);
+      for (let k = 0; k < this.os; k++) {
+        s += p.str.process(velocity, force, this.restNow, p.grain);
+        if (droneRun) s += p.drone.process(droneBowed ? velocity : 0, droneBowed ? force : 0, this.droneOn ? this.restNow : 0.3, p.grain);
       }
+      s /= this.os;
+      if (this.droneOn) p.droneRinging = sr * 0.5; else if (p.droneRinging > 0) p.droneRinging--;
       left += s * (this.section ? p.panLeft : 1);
       right += s * (this.section ? p.panRight : 1);
     }
@@ -2733,7 +2748,7 @@ class OmniDSP {
     // stays as pressed; only what sounds moves. The drums are retuned instead.
     this.tr = { omni: 0, juno: 0, acid: 0, drums: 0, violin: 0 }; this.lastComp = null; this.drumTracks = null;
     // The violin, and the loops of the Omni and the violin.
-    this.violin = new StringEngine(sr); this.vframe = [0, 0]; this.vNote = 62;
+    this.violin = new StringEngine(sr); this.vframe = [0, 0]; this.vNote = 62; this.vDrone = null;
     this.tracks = { omni: new LoopTrack(), violin: new LoopTrack() };
     this.lastOmniChord = null;
     // The metronome: a short sine blip on every beat, higher on bar one.
@@ -2873,7 +2888,10 @@ class OmniDSP {
     if (st === this.tr[ch]) return;
     this.tr[ch] = st;
     if (ch === 'omni') this.setComp();
-    else if (ch === 'violin') this.violin.setNote(this.vNote + st);
+    else if (ch === 'violin') {
+      this.violin.setNote(this.vNote + st);
+      if (this.vDrone != null) this.violin.setDrone(true, this.vDrone + st);
+    }
     else if (ch === 'acid') { if (this.lastAcid) this.setAcid(this.lastAcid); }
     else if (ch === 'drums') this.setDrums();
     else if (ch === 'juno' && this.lastChord) {
@@ -3118,7 +3136,11 @@ class OmniDSP {
     else if (m.type === 'violinNote') { this.trackRecord('violin', 'note', m); this.applyTrackMsg(m); }
     else if (m.type === 'violinBow') { this.trackRecord('violin', 'bow', m); this.applyTrackMsg(m); }
     else if (m.type === 'violinPluck') { this.trackRecord('violin', 'pluck', m); this.applyTrackMsg(m); }
-    else if (m.type === 'violinSet') { this.violin.setInstrument(m.inst); this.violin.setSection(m.section); this.violin.setPizzicato(m.pizz); }
+    else if (m.type === 'violinSet') {
+      this.violin.setSordino(m.sordino); this.violin.setInstrument(m.inst);
+      this.violin.setSection(m.section); this.violin.setPizzicato(m.pizz);
+    }
+    else if (m.type === 'violinDrone') { this.vDrone = m.on ? m.midi : null; this.violin.setDrone(m.on, (m.midi || 0) + this.tr.violin); }
     else if (m.type === 'violinPressure') this.violin.setPressure(m.amount);
     else if (m.type === 'violinGlide') this.violin.setGlide(m.amount);
     else if (m.type === 'trackArm') this.trackArm(m.track);
@@ -3789,7 +3811,7 @@ for (const [ch] of MIX_CHANNELS) mixState[ch] = { volume: 0.8, mute: false, filt
 const loopUI = { state: 'empty', bars: 2, events: [] };
 let savedLayout = 'fifths';
 const tracksUI = { omni: { state: 'empty', bars: 2, events: [] }, violin: { state: 'empty', bars: 2, events: [] } };
-const violinState = { inst: 0, key: 7, scale: 0, pressure: 0.45, glide: 0.15, section: false, pizz: false, note: null };
+const violinState = { inst: 0, key: 7, scale: 0, pressure: 0.45, glide: 0.15, section: false, pizz: false, sordino: false, drone: null, note: null };
 try {
   const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
   if (saved) {
@@ -5338,7 +5360,10 @@ function buildFingerboard() {
   renderFingerboard();
 }
 function renderFingerboard() {
-  for (const b of fbCells) b.classList.toggle('lit', +b.dataset.midi === violinState.note);
+  for (const b of fbCells) {
+    b.classList.toggle('lit', +b.dataset.midi === violinState.note);
+    b.classList.toggle('drone', +b.dataset.midi === violinState.drone);
+  }
 }
 
 function setViolinNote(midi) {
@@ -5423,14 +5448,17 @@ bowPadEl.addEventListener('pointerup', (e) => { if (bowFinger && e.pointerId ===
 bowPadEl.addEventListener('pointercancel', (e) => { if (bowFinger && e.pointerId === bowFinger.id) releaseBow(); });
 
 function sendViolin() {
-  send({ type: 'violinSet', inst: violinState.inst, section: violinState.section, pizz: violinState.pizz });
+  send({ type: 'violinSet', inst: violinState.inst, section: violinState.section, pizz: violinState.pizz, sordino: violinState.sordino });
+  send({ type: 'violinDrone', on: violinState.drone != null, midi: violinState.drone });
   send({ type: 'violinPressure', amount: violinState.pressure });
   send({ type: 'violinGlide', amount: violinState.glide });
   if (violinState.note != null) send({ type: 'violinNote', midi: violinState.note });
 }
 
-/* A new instrument, key or scale: a new fingerboard, the finger on its middle tonic. */
+/* A new instrument, key or scale: a new fingerboard, the finger on its middle
+   tonic, and the drone, if one is held, on its lowest. */
 function violinChanged() {
+  if (violinState.drone != null) violinState.drone = violinTonic();
   buildFingerboard();
   setViolinNote(violinTonic() + 12);
   sendViolin();
@@ -5439,7 +5467,22 @@ function violinChanged() {
 violinInstSel.addEventListener('change', () => { violinState.inst = +violinInstSel.value; violinChanged(); });
 violinKeySel.addEventListener('change', () => { violinState.key = +violinKeySel.value; violinChanged(); });
 violinScaleSel.addEventListener('change', () => { violinState.scale = +violinScaleSel.value; violinChanged(); });
-for (const [id, key] of [['pizzToggle', 'pizz'], ['sectionToggle', 'section']]) {
+/* DRONE holds the note under the finger on a second string, bowed and plucked
+   with the first, until it is pressed again. */
+const droneBtn = document.getElementById('droneToggle');
+function renderDrone() {
+  droneBtn.setAttribute('aria-pressed', String(violinState.drone != null));
+  renderFingerboard();
+}
+droneBtn.addEventListener('click', () => {
+  violinState.drone = violinState.drone == null ? violinState.note : null;
+  send({ type: 'violinDrone', on: violinState.drone != null, midi: violinState.drone });
+  renderDrone();
+  save();
+});
+renderDrone();
+
+for (const [id, key] of [['pizzToggle', 'pizz'], ['sectionToggle', 'section'], ['sordinoToggle', 'sordino']]) {
   const b = document.getElementById(id);
   b.setAttribute('aria-pressed', String(violinState[key]));
   b.addEventListener('click', () => {
