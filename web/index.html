@@ -70,6 +70,7 @@ body {
 [data-inst="juno"] #app { --side: 33%; }
 [data-inst="acid"] #app { --side: 38%; }
 [data-inst="drums"] #app { --side: 30%; }
+[data-inst="violin"] #app { --side: 36%; }
 [data-inst="mix"] #app { --side: 0px; }
 /* Small phones: the controls get the room, the phrase name in the readout goes. */
 @media (max-width: 720px) {
@@ -209,6 +210,57 @@ body {
 .dg-cell.acc { background: var(--led); }
 .dg-cell.ph { outline: 1px solid var(--led); outline-offset: -1px; }
 .dg-cell.ph:not(.on):not(.acc) { background: color-mix(in srgb, var(--led) 14%, var(--bezel)); }
+/* ---------- violin ---------- */
+.fingerboard {
+  grid-area: keys;
+  display: grid;
+  gap: 5px;
+  min-height: 0;
+  min-width: 0;
+  touch-action: none;
+}
+.fb-note {
+  position: relative;
+  border: 0;
+  border-radius: 6px;
+  background: var(--key-minor);
+  color: var(--key-ink);
+  box-shadow: 0 3px 0 var(--key-shadow), inset 0 -2px 0 rgb(0 0 0 / .12);
+  font: 600 clamp(12px, 2.4vmin, 18px)/1 var(--font-key);
+  display: flex; align-items: center; justify-content: center;
+  min-width: 0; min-height: 0; padding: 0;
+  cursor: pointer;
+  touch-action: none;
+}
+.fb-note small { font-size: .62em; font-weight: 500; opacity: .6; margin-left: 1px; }
+.fb-note.tonic { background: var(--key-major); }
+.fb-note.down { transform: translateY(2px); box-shadow: 0 1px 0 var(--key-shadow); }
+.fb-note.lit::after { content: ""; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--led); box-shadow: 0 0 6px var(--led); }
+.bowpad {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--plate);
+  overflow: hidden;
+  touch-action: none;
+}
+.bowpad .bp-axis { position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dashed var(--line); }
+.bowpad .bp-lab { position: absolute; font: 500 10px/1 var(--font-mono); letter-spacing: .06em; color: var(--ink-dim); text-transform: uppercase; pointer-events: none; }
+.bp-left { left: 10px; top: calc(50% + 8px); }
+.bp-right { right: 10px; top: calc(50% + 8px); }
+.bp-top { top: 10px; left: 0; right: 0; text-align: center; }
+.bp-bottom { bottom: 10px; left: 0; right: 0; text-align: center; }
+.bowpad .bp-origin, .bowpad .bp-finger { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; display: none; pointer-events: none; }
+.bowpad .bp-origin { border: 2px solid var(--ink-dim); }
+.bowpad .bp-finger { width: 22px; height: 22px; margin: -11px 0 0 -11px; background: var(--led); box-shadow: 0 0 14px var(--led); }
+.bowpad .bp-line { position: absolute; height: 2px; background: var(--led); transform-origin: 0 50%; display: none; pointer-events: none; }
+.bowpad.active .bp-origin, .bowpad.active .bp-finger, .bowpad.active .bp-line { display: block; }
+.bowpad .bp-pizz { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; text-align: center; padding: 20px; font: 500 11px/1.4 var(--font-mono); color: var(--ink-dim); pointer-events: none; }
+.bowpad.pizz .bp-pizz { display: flex; }
+.bowpad.pizz .bp-lab, .bowpad.pizz .bp-axis { display: none; }
+.bowpad.hit { box-shadow: inset 0 0 30px color-mix(in srgb, var(--led) 40%, transparent); }
 .drumside { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }
 .drumpad {
   flex: 1 1 auto;
@@ -236,8 +288,8 @@ body {
   grid-row: 2;
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
   min-height: 0;
 }
 .strip {
@@ -771,6 +823,8 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
 [data-inst]:not([data-inst="acid"]) .acid-only,
 [data-inst]:not([data-inst="drums"]) .drums-only,
 [data-inst]:not([data-inst="mix"]) .mix-only,
+[data-inst]:not([data-inst="violin"]) .violin-only,
+[data-inst="violin"] .keys, [data-inst="violin"] #editBtn,
 [data-inst]:not([data-inst="omni"]):not([data-inst="juno"]) .keys-only,
 [data-inst="acid"] .keys, [data-inst="drums"] .keys, [data-inst="mix"] .keys,
 [data-inst="acid"] .readout, [data-inst="drums"] .readout, [data-inst="mix"] .readout,
@@ -820,11 +874,16 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   pointer-events: none;
 }
 
+/* Six tabs: below a big phone's width the long names shorten. */
+@media (max-width: 900px) {
+  .bar .tab .wide { display: none; }
+}
 /* Small phones: every button a little tighter, so each row holds what it held. */
 @media (max-width: 720px) {
   .bar .tab { padding: 7px 6px; font-size: 10px; letter-spacing: .04em; }
   .bar .wide { display: none; }
   [data-inst="acid"] #app { --side: 33%; }
+  [data-inst="violin"] #app { --side: 32%; }
   .bar .metro { padding: 7px 6px; font-size: 10px; letter-spacing: .04em; gap: 5px; }
   .row3 .fader { height: 30px; padding: 0 6px; }
   .bar .row3 { gap: 4px; }
@@ -892,6 +951,7 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
       <button class="tab" role="tab" type="button" data-tab="acid" aria-selected="false">303</button>
       <button class="tab" role="tab" type="button" data-tab="juno" aria-selected="false">Juno</button>
       <button class="tab" role="tab" type="button" data-tab="omni" aria-selected="false">Omni<span class="wide">chord</span></button>
+      <button class="tab" role="tab" type="button" data-tab="violin" aria-selected="false">Violin</button>
       <button class="tab" role="tab" type="button" data-tab="mix" aria-selected="false">Mix<span class="wide">er</span></button>
     </nav>
     <div class="rhythm" role="group" aria-label="Transport">
@@ -970,8 +1030,48 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
           <option value="chromatic">Chromatic</option>
         </select>
       </div>
+      <div class="fx violin-only">
+        <label class="sr" for="violinInst">Instrument</label>
+        <select id="violinInst" class="sel"><option value="0">Violin</option><option value="1">Viola</option><option value="2">Cello</option><option value="3">Bass</option></select>
+        <label class="sr" for="violinKey">Key</label>
+        <select id="violinKey" class="sel"></select>
+        <label class="sr" for="violinScale">Scale</label>
+        <select id="violinScale" class="sel"></select>
+        <button class="toggle" id="pizzToggle" type="button" aria-pressed="false">Pizz</button>
+        <button class="toggle" id="sectionToggle" type="button" aria-pressed="false">Section</button>
+      </div>
       <div class="fx mix-only">
         <button class="action" id="mixReset" type="button">Reset mix</button>
+      </div>
+    </div>
+    <div class="row3 omni-only">
+      <div class="rec" data-track="omni" data-state="empty" role="group" aria-label="Omnichord loop recorder">
+        <button class="recbtn" type="button">Rec</button>
+        <div class="seg" role="group" aria-label="Loop length in bars">
+          <button type="button" data-bars="1" aria-pressed="false">1</button>
+          <button type="button" data-bars="2" aria-pressed="true">2</button>
+          <button type="button" data-bars="4" aria-pressed="false">4</button>
+        </div>
+        <button class="toggle tplay" type="button" aria-pressed="false">Loop</button>
+        <button class="action tclear" type="button">Clear</button>
+        <div class="rec-bar" aria-hidden="true"><span></span></div>
+      </div>
+    </div>
+    <div class="row3 violin-only">
+      <div class="rec" data-track="violin" data-state="empty" role="group" aria-label="Violin loop recorder">
+        <button class="recbtn" type="button">Rec</button>
+        <div class="seg" role="group" aria-label="Loop length in bars">
+          <button type="button" data-bars="1" aria-pressed="false">1</button>
+          <button type="button" data-bars="2" aria-pressed="true">2</button>
+          <button type="button" data-bars="4" aria-pressed="false">4</button>
+        </div>
+        <button class="toggle tplay" type="button" aria-pressed="false">Loop</button>
+        <button class="action tclear" type="button">Clear</button>
+        <div class="rec-bar" aria-hidden="true"><span></span></div>
+      </div>
+      <div class="filters">
+        <div class="fader" id="violinPressure" role="slider" tabindex="0" aria-label="Bow pressure"><span class="fill"></span><span class="flabel">Press<span class="wide">ure</span></span><span class="fval"></span></div>
+        <div class="fader" id="violinGlide" role="slider" tabindex="0" aria-label="Glide"><span class="fill"></span><span class="flabel">Glide</span><span class="fval"></span></div>
       </div>
     </div>
     <div class="row3 juno-only">
@@ -1002,6 +1102,7 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   <div class="keys" id="keys" role="group" aria-label="Chord buttons"></div>
   <div class="drumgrid drums-only" id="drumGrid" role="grid" aria-label="Drum pattern: tap for a hit, again for an accent, again for silence"></div>
   <div class="mixer mix-only" id="mixer" role="group" aria-label="Mixer"></div>
+  <div class="fingerboard violin-only" id="fingerboard" role="group" aria-label="Fingerboard: hold a note to stop the string; the rows are octaves"></div>
   <div class="seq acid-only" id="seq" role="grid" aria-label="303 pattern: tap to set a note, again for a rest"></div>
 
   <section class="editor" id="editor" hidden aria-labelledby="edName">
@@ -1027,6 +1128,13 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   <div class="side">
     <div class="plate omni-only" id="plate" role="application" aria-label="Strum plate: drag a finger across the strings"></div>
     <div class="phrases juno-only" id="phrases" role="application" aria-label="Phrase plate: hold a style to play it; across picks the variation"></div>
+    <div class="bowpad violin-only" id="bowPad" role="application" aria-label="Bow: put a finger down and move it sideways to draw the bow, faster for louder; up adds vibrato, down tremolo">
+      <span class="bp-axis bp-h"></span>
+      <span class="bp-lab bp-left">&larr; up-bow</span><span class="bp-lab bp-right">down-bow &rarr;</span>
+      <span class="bp-lab bp-top">vibrato</span><span class="bp-lab bp-bottom">tremolo</span>
+      <span class="bp-origin"></span><span class="bp-line"></span><span class="bp-finger"></span>
+      <span class="bp-pizz">Pizzicato: tap to pluck, higher is harder</span>
+    </div>
     <div class="pads acid-only">
       <div class="xy" data-x="cutoff" data-y="resonance" role="application" aria-label="Filter: cutoff across, resonance up">
         <span class="xy-h"></span><span class="xy-v"></span><span class="xy-dot"></span>
@@ -2187,6 +2295,398 @@ class PumpKit {
   }
 }
 
+/* =============================================================================
+   Violin — ported from Source/dsp/BowedString.h and Source/dsp/StringEngine.h.
+   ============================================================================= */
+
+/* A delay line read at a fractional position, with four-point Lagrange
+   interpolation. A linear read is a lowpass whose depth depends on where
+   between two samples it lands, which a vibrato sweeps across all the time;
+   Lagrange is flat enough that a vibrato is heard as pitch. */
+class FractionalDelay {
+  constructor(maxDelaySamples) {
+    let size = 16;
+    while (size < maxDelaySamples + 8) size <<= 1;
+    this.buf = new Float32Array(size);
+    this.mask = size - 1;
+    this.w = 0;
+  }
+  clear() { this.buf.fill(0); }
+  push(x) { this.buf[this.w] = x; this.w = (this.w + 1) & this.mask; }
+  /* The value pushed `delay` samples ago; two is the shortest it can read. */
+  read(delay) {
+    delay = Math.min(Math.max(delay, 2), this.mask - 4);
+    const whole = delay | 0, f = delay - whole, b = this.buf, m = this.mask, w = this.w;
+    const ym1 = b[(w - whole + 1) & m], y0 = b[(w - whole) & m], y1 = b[(w - whole - 1) & m], y2 = b[(w - whole - 2) & m];
+    const fm1 = f + 1, f1 = f - 1, f2 = f - 2;
+    return ym1 * (-f * f1 * f2 / 6) + y0 * (fm1 * f1 * f2 * 0.5) + y1 * (-fm1 * f * f2 * 0.5) + y2 * (fm1 * f * f1 / 6);
+  }
+}
+
+/* One bowed string: a digital waveguide with the bow as a friction junction.
+   The bow is not a signal generator but a friction law, solved every sample
+   against the waves arriving at it: the stick and slip of the Helmholtz
+   motion, the hiss of a bow too light to grip and the crunch of one too heavy
+   to let go all come out of the same equation. The friction curve is the
+   hyperbolic one of Smith and Woodhouse, solved exactly as a quadratic. Units
+   are the physics' own with the string's impedance set to one. */
+class BowedString {
+  static get kStaticFriction() { return 0.8; }
+  static get kDynamicFriction() { return 0.3; }
+  static get kFrictionSpan() { return 0.5; }
+  static get kSlipKnee() { return 0.08; }
+
+  constructor(sr) {
+    this.sr = sr;
+    const longest = Math.floor(sr / 20) + 8;   // the longest string any register asks for
+    this.toFinger = new FractionalDelay(longest);
+    this.toBridge = new FractionalDelay(longest);
+    this.fingerLength = 100; this.bridgeLength = 10; this.betaNow = 0.1;
+    this.loopGain = 0.99; this.pole = 0.2; this.lowpassDelay = 0;
+    this.pulseAmplitude = 0; this.pulseLength = 0;
+    this.reset();
+  }
+
+  reset() {
+    this.toFinger.clear(); this.toBridge.clear();
+    this.bridgeLowpass = 0; this.sticking = false; this.pulseLeft = 0;
+  }
+
+  /* Losses, once a block: how long the free string rings, and how fast the
+     high partials go. The lowpass delays the fundamental too, and is taken off
+     the finger side so the string does not play flat. */
+  setLosses(hz, ringSeconds, lowpassHz) {
+    hz = Math.max(hz, 20);
+    this.loopGain = Math.pow(10, -3 / (Math.max(0.05, ringSeconds) * hz));
+    this.pole = Math.exp(-2 * Math.PI * Math.min(lowpassHz, 0.45 * this.sr) / this.sr);
+    const w = 2 * Math.PI * hz / this.sr;
+    this.lowpassDelay = Math.atan2(this.pole * Math.sin(w), 1 - this.pole * Math.cos(w)) / w;
+  }
+
+  /* Pitch and the bow's place, as a fraction of the length from the bridge. */
+  setTuning(hz, bowPosition) {
+    const period = this.sr / Math.min(Math.max(hz, 20), this.sr / 12);
+    this.bridgeLength = Math.min(Math.max(bowPosition * period, 2.5), period * 0.4);
+    this.fingerLength = Math.max(2.5, period - this.bridgeLength - this.lowpassDelay);
+    this.betaNow = this.bridgeLength / period;
+  }
+
+  beta() { return this.betaNow; }
+
+  /* A finger's pluck, as a velocity pulse through the bow point. */
+  pluck(amplitude, widthSamples) {
+    this.pulseAmplitude = amplitude;
+    this.pulseLength = Math.max(4, widthSamples);
+    this.pulseLeft = this.pulseLength;
+  }
+
+  /* One sample: the velocity wave arriving at the bridge. */
+  process(bowVelocity, bowForce, restDamping, grain) {
+    const atBridge = this.toBridge.read(this.bridgeLength);
+    const fromFinger = -this.toFinger.read(this.fingerLength);
+    this.bridgeLowpass = (1 - this.pole) * atBridge + this.pole * this.bridgeLowpass;
+    const fromBridge = -this.loopGain * this.bridgeLowpass;
+    const incoming = fromFinger + fromBridge;
+    let added = this.friction(bowVelocity, bowForce, incoming, grain) - restDamping * incoming;
+    if (this.pulseLeft > 0) {
+      const n = (this.pulseLength - this.pulseLeft) / this.pulseLength;
+      added += this.pulseAmplitude * 0.5 * (1 - Math.cos(2 * Math.PI * n));
+      this.pulseLeft--;
+    }
+    this.toFinger.push(fromBridge + added);
+    this.toBridge.push(fromFinger + added);
+    return atBridge;
+  }
+
+  /* What the bow adds to both outgoing waves. A slipping string solves
+     x² + (v0 - a + k μd) x + v0 (k μs - a) = 0; where sticking and slipping are
+     both possible, it stays as it was — the hysteresis that makes the slip snap. */
+  friction(vb, k, vh, grain) {
+    if (k <= 0) { this.sticking = false; return 0; }
+    const want = vb - vh, a = Math.abs(want), s = want >= 0 ? 1 : -1;
+    const muS = 0.8 * (1 + grain), muD = 0.3 * (1 + grain), v0 = 0.08;
+    const canStick = a <= k * muS;
+    if (this.sticking && canStick) return want;
+    const b = v0 - a + k * muD, c = v0 * (k * muS - a), disc = b * b - 4 * c;
+    if (disc >= 0) {
+      const x = 0.5 * (-b + Math.sqrt(disc));
+      if (x > 0) { this.sticking = false; return s * (a - x); }
+    }
+    this.sticking = true;   // no slipping solution left: the hair has caught the string
+    return want;
+  }
+}
+
+/* The wooden box: a bank of resonances for the plates and the air inside,
+   the violin's — A0, the corpus mode, B1- and B1+, a scatter above and the
+   bridge hill round 2.5 kHz — scaled down for the larger instruments, plus a
+   highpassed direct path. */
+class StringBody {
+  constructor(sr) { this.sr = sr; this.modes = []; for (let i = 0; i < 13; i++) this.modes.push({ b0: 0, b2: 0, a1: 0, a2: 0, gain: 0, z1: 0, z2: 0 }); this.configure(0); this.reset(); }
+  reset() {
+    for (const m of this.modes) m.z1 = m.z2 = 0;
+    this.hp1 = this.hp2 = this.hpOut1 = this.hpOut2 = 0; this.lowpass = 0;
+  }
+  configure(instrument) {
+    const violin = [[275, 14, 0.90, false], [405, 18, 0.30, false], [460, 22, 1.10, false], [540, 22, 1.00, false],
+                    [700, 16, 0.45, false], [860, 16, 0.40, false], [1050, 14, 0.45, false], [1320, 12, 0.40, false],
+                    [1650, 10, 0.40, true], [2100, 6, 0.60, true], [2650, 6, 0.70, true], [3300, 6, 0.45, true], [4600, 4, 0.22, true]];
+    const s = StringEngine.instruments()[instrument], sr = this.sr;
+    violin.forEach(([hz, q, gain, hill], i) => {
+      hz = Math.min(hz * (hill ? s.bodyHigh : s.bodyLow), 0.45 * sr);
+      const w = 2 * Math.PI * hz / sr, alpha = Math.sin(w) / (2 * q), a0 = 1 + alpha, m = this.modes[i];
+      m.b0 = alpha / a0; m.b2 = -alpha / a0; m.a1 = -2 * Math.cos(w) / a0; m.a2 = (1 - alpha) / a0; m.gain = gain;
+    });
+    // Below A0 a box radiates little, so the direct path is highpassed under it.
+    const w = 2 * Math.PI * 190 * s.bodyLow / sr, alpha = Math.sin(w) / (2 * 0.7071), cw = Math.cos(w), a0 = 1 + alpha;
+    this.hpB0 = (1 + cw) * 0.5 / a0; this.hpB1 = -(1 + cw) / a0; this.hpB2 = this.hpB0;
+    this.hpA1 = -2 * cw / a0; this.hpA2 = (1 - alpha) / a0;
+    this.lowpassCoef = 1 - Math.exp(-2 * Math.PI * Math.min(7500 * s.bodyHigh, 0.45 * sr) / sr);
+  }
+  process(x) {
+    const direct = this.hpB0 * x + this.hpB1 * this.hp1 + this.hpB2 * this.hp2 - this.hpA1 * this.hpOut1 - this.hpA2 * this.hpOut2;
+    this.hp2 = this.hp1; this.hp1 = x; this.hpOut2 = this.hpOut1; this.hpOut1 = direct;
+    let sum = direct * 0.35;
+    for (const m of this.modes) {
+      const y = m.b0 * x + m.z1;
+      m.z1 = -m.a1 * y + m.z2;
+      m.z2 = m.b2 * x - m.a2 * y;
+      sum += y * m.gain;
+    }
+    this.lowpass += (sum - this.lowpass) * this.lowpassCoef;
+    return this.lowpass;
+  }
+}
+
+/* The bowed string instrument, from violin to double bass. The left hand stops
+   the string; the bow's speed and direction, the hand's vibrato or tremolo and
+   the index finger's weight on the bow are set from the pad. Nothing here makes
+   an envelope: a note starts because a bow starts moving across a string, and
+   stops because the bow stops on it. A section is four players, each a little
+   apart in tuning, timing and place. */
+class StringEngine {
+  static instruments() {
+    return [
+      { name: 'VIOLIN', open: [55, 62, 69, 76], bowPoint: 0.10, ref: 1, ring: 1.1, lowpassHz: 9000, bodyLow: 1.00, bodyHigh: 1.00, trim: 1.07 },
+      { name: 'VIOLA',  open: [48, 55, 62, 69], bowPoint: 0.10, ref: 1, ring: 1.4, lowpassHz: 7500, bodyLow: 0.80, bodyHigh: 0.88, trim: 1.43 },
+      { name: 'CELLO',  open: [36, 43, 50, 57], bowPoint: 0.10, ref: 1, ring: 2.4, lowpassHz: 5000, bodyLow: 0.42, bodyHigh: 0.62, trim: 1.40 },
+      { name: 'BASS',   open: [28, 33, 38, 43], bowPoint: 0.10, ref: 1, ring: 3.0, lowpassHz: 3200, bodyLow: 0.27, bodyHigh: 0.48, trim: 0.83 }
+    ];
+  }
+  static hz(note) { return 440 * Math.pow(2, (note - 69) / 12); }
+  static ratio(low, high, x) { return low * Math.pow(high / low, Math.min(1, Math.max(0, x))); }
+  static ratioFromZero(low, high, x) { return x <= 0 ? 0 : StringEngine.ratio(low, high, x) * Math.min(1, x / 0.05); }
+
+  constructor(sr) {
+    this.sr = sr;
+    this.os = 2;   // the strings run at twice the rate: a slip can only land on a sample
+    this.players = [];
+    const detune = [0, 6, -5, 3], drift = [0.07, 0.11, 0.09, 0.13], rate = [1, 1.08, 0.93, 1.04];
+    const speed = [1, 0.93, 1.06, 0.97], force = [1, 1.08, 0.92, 1.03], delay = [0, 0.011, 0.023, 0.006];
+    const pan = [-0.2, 0.6, -0.6, 0.2];
+    this.bowLag = [0.010, 0.024, 0.036, 0.017];
+    this.rng = 0x2545f491 | 0;
+    for (let i = 0; i < 4; i++) {
+      const angle = (pan[i] + 1) * 0.25 * Math.PI;
+      this.players.push({
+        str: new BowedString(sr * this.os),
+        detuneCents: detune[i], driftHz: drift[i], rateScale: rate[i], speedScale: speed[i], forceScale: force[i],
+        pluckDelay: delay[i], panLeft: Math.cos(angle) * Math.SQRT2, panRight: Math.sin(angle) * Math.SQRT2,
+        bowCoef: 1 - Math.exp(-1 / (this.bowLag[i] * sr)),
+        vibratoPhase: i ? this.noise01() : 0, driftPhase: this.noise01(), tremoloPhase: i ? this.noise01() : 0,
+        steady: 0, tremolo: 0, grain: 0, pluckStrength: 0, pluckIn: -1, rattlePhase: 0, follow: 0
+      });
+    }
+    this.bodyL = new StringBody(sr); this.bodyR = new StringBody(sr);
+    this.inst = 0; this.section = false; this.pizzicato = false;
+    this.noteTarget = 62; this.noteNow = 62;
+    this.glideAmount = 0; this.glideCoef = 1;
+    this.bowStick = 0; this.bowTargetSpeed = 0; this.steadyTarget = 0; this.tremoloAmp = 0; this.tremoloRate = 5;
+    this.vibratoTarget = 0; this.vibratoNow = 0; this.tremoloTarget = 0;
+    this.pressureAmount = 0.5; this.relativeForce = StringEngine.forceAt(0.5); this.skorr = 0;
+    this.rattleHz = 30; this.restTarget = 0; this.restNow = 0; this.bowPosition = 0.1;
+    this.settle = 1; this.settleCoef = 0.001; this.lastStroke = 0;
+    this.controlCoef = 1 - Math.exp(-1 / (0.006 * sr));
+    this.restCoef = 1 - Math.exp(-1 / (0.015 * sr));
+    this.followCoef = 1 - Math.exp(-1 / (0.080 * sr));
+    this.levelFall = Math.exp(-1 / (0.25 * sr));
+    this.dcCoef = 1 - 2 * Math.PI * 12 / sr;
+    this.dcL = this.dcR = this.dcInL = this.dcInR = 0; this.level = 0;
+    this.quiet = 0;   // samples of silence: past a second the strings are not run at all
+    this.setInstrument(0);
+    this.setGlide(0);
+    this.begin();
+  }
+
+  noise() { let x = this.rng; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; this.rng = x | 0; return ((x >>> 8) * (2 / 16777216)) - 1; }
+  noise01() { return (this.noise() + 1) * 0.5; }
+
+  /* Pressure is laid over the regions the model plays in: the first quarter
+     the surface sound of a bow too light to grip, the middle half a clean
+     tone, the last quarter leaning in while the rasp comes. */
+  static forceAt(x) {
+    const k = [0.12, 0.30, 0.68, 0.78], b = (p, q, t) => p * Math.pow(q / p, t);
+    x = Math.min(1, Math.max(0, x));
+    if (x < 0.25) return b(k[0], k[1], x / 0.25);
+    if (x < 0.75) return b(k[1], k[2], (x - 0.25) / 0.5);
+    return b(k[2], k[3], (x - 0.75) / 0.25);
+  }
+
+  setInstrument(i) { this.inst = ((i % 4) + 4) % 4; this.bodyL.configure(this.inst); this.bodyR.configure(this.inst); }
+  setSection(on) { this.section = !!on; }
+  setPizzicato(on) { this.pizzicato = !!on; }
+  setNote(midi) { this.noteTarget = midi; }
+  /* 0 a finger that lands, 1 a quarter-second slide. */
+  setGlide(amount) {
+    this.glideAmount = Math.min(1, Math.max(0, amount));
+    this.glideCoef = 1 - Math.exp(-1 / (StringEngine.ratio(0.003, 0.25, this.glideAmount) * this.sr));
+  }
+  /* The bow: -1 to 1, the sign its direction. */
+  setBow(y) { this.bowStick = Math.min(1, Math.max(-1, y)); }
+  /* The hand: 0 to 1 right is vibrato, to the left tremolo. */
+  setHand(x) { this.vibratoTarget = Math.max(0, Math.min(1, x)); this.tremoloTarget = Math.max(0, Math.min(1, -x)); }
+  setPressure(a) {
+    this.pressureAmount = Math.min(1, Math.max(0, a));
+    this.relativeForce = StringEngine.forceAt(this.pressureAmount);
+    this.skorr = Math.min(1, Math.max(0, (this.pressureAmount - 0.75) / 0.25));
+  }
+  pluck(strength) {
+    strength = Math.min(1, Math.max(0.05, strength));
+    for (let i = 0; i < (this.section ? 4 : 1); i++) {
+      const p = this.players[i];
+      p.pluckStrength = strength * p.speedScale;
+      p.pluckIn = Math.round(p.pluckDelay * this.sr);
+    }
+    this.quiet = 0;
+  }
+  allOff() {
+    for (const p of this.players) { p.str.reset(); p.steady = p.tremolo = 0; p.pluckIn = -1; }
+    this.bodyL.reset(); this.bodyR.reset();
+    this.dcL = this.dcR = this.dcInL = this.dcInR = 0; this.level = 0;
+  }
+
+  /* How long the string rings: bowed, a small fixed loss per period (more
+     below 200 Hz); plucked, a free string's own time. */
+  ringFor(hz) {
+    if (!this.pizzicato) return 3 / (Math.max(hz, 20) * 0.003 * Math.max(1, 200 / hz));
+    const s = StringEngine.instruments()[this.inst], ref = StringEngine.hz(s.open[s.ref]);
+    return Math.min(6, Math.max(0.3, s.ring * Math.sqrt(ref / hz)));
+  }
+
+  /* Once a block: the bow's decision and the per-note losses. */
+  begin() {
+    const s = StringEngine.instruments()[this.inst];
+    const lean = Math.abs(this.bowStick), drive = Math.max(lean, this.tremoloTarget);
+    this.bowTargetSpeed = drive > 0 ? Math.pow(10, (drive - 1) * 30 / 20) * Math.min(1, drive / 0.05) : 0;
+    const w = Math.min(1, this.tremoloTarget * 3);
+    this.steadyTarget = this.bowTargetSpeed * 0.5 * (1 - w) * (lean > 0 ? (this.bowStick >= 0 ? 1 : -1) : 0);
+    // A new stroke starts from the middle of the clean window and leans in.
+    const stroke = this.steadyTarget > 0 ? 1 : this.steadyTarget < 0 ? -1 : 0;
+    if (stroke !== 0 && stroke !== this.lastStroke) this.settle = 0;
+    this.lastStroke = stroke;
+    const hz = StringEngine.hz(this.noteTarget);
+    this.settleCoef = 1 - Math.exp(-1 / (30 / Math.max(hz, 20) * this.sr));
+    this.tremoloAmp = this.bowTargetSpeed * 0.5 * w;
+    this.tremoloRate = StringEngine.ratio(3.5, 8, this.tremoloTarget);
+    // A bow resting on the string stops it in about the same time on any string.
+    this.restTarget = (!this.pizzicato && this.bowTargetSpeed <= 0) ? Math.min(0.45, Math.max(0.02, 22 / hz)) : 0;
+    this.bowPosition = s.bowPoint;
+    this.rattleHz = hz / Math.max(1, Math.round(hz / 28));
+    for (let i = 0; i < 4; i++) {
+      const p = this.players[i];
+      p.bowCoef = 1 - Math.exp(-1 / ((this.bowLag[i] + 4 / hz) * this.sr));
+      p.str.setLosses(hz, this.ringFor(hz), Math.min(s.lowpassHz, 12 * hz));
+    }
+    if (this.bowTargetSpeed > 0) this.quiet = 0;
+  }
+
+  /* One output sample into out[0], out[1]. */
+  process(out) {
+    if (this.quiet > this.sr) { out[0] = out[1] = 0; return; }
+    const sr = this.sr, TWO_PI = 2 * Math.PI;
+    this.noteNow += (this.noteTarget - this.noteNow) * this.glideCoef;
+    this.vibratoNow += (this.vibratoTarget - this.vibratoNow) * this.controlCoef;
+    this.restNow += (this.restTarget - this.restNow) * this.restCoef;
+    const vibratoCents = StringEngine.ratioFromZero(3, 32, this.vibratoNow);
+    const vibratoHz = StringEngine.ratio(5.2, 6.4, this.vibratoNow);
+    this.settle += (1 - this.settle) * this.settleCoef;
+    const strokeForce = this.relativeForce <= 0.35 ? this.relativeForce : 0.35 + (this.relativeForce - 0.35) * this.settle;
+    const count = this.section ? 4 : 1;
+    let left = 0, right = 0;
+    for (let i = 0; i < count; i++) {
+      const p = this.players[i];
+      p.vibratoPhase += vibratoHz * p.rateScale / sr; if (p.vibratoPhase >= 1) p.vibratoPhase -= 1;
+      p.driftPhase += p.driftHz / sr; if (p.driftPhase >= 1) p.driftPhase -= 1;
+      const cents = (this.section ? p.detuneCents + 2 * Math.sin(TWO_PI * p.driftPhase) : 0)
+                  + vibratoCents * Math.sin(TWO_PI * p.vibratoPhase);
+      p.str.setTuning(StringEngine.hz(this.noteNow + cents * 0.01), this.bowPosition);
+      p.steady += (this.steadyTarget * p.speedScale - p.steady) * p.bowCoef;
+      p.tremolo += (this.tremoloAmp * p.speedScale - p.tremolo) * p.bowCoef;
+      let velocity = p.steady;
+      if (p.tremolo > 1e-5 || this.tremoloAmp > 0) {
+        const before = p.tremoloPhase;
+        p.tremoloPhase += this.tremoloRate * p.rateScale / sr; if (p.tremoloPhase >= 1) p.tremoloPhase -= 1;
+        // Pizzicato tremolo: a pluck on every stroke, mandolin style.
+        if (this.pizzicato && this.tremoloAmp > 0 && (p.tremoloPhase < before || (before < 0.5 && p.tremoloPhase >= 0.5))) {
+          p.pluckStrength = (0.3 + 0.5 * this.tremoloTarget) * p.speedScale; p.pluckIn = 0;
+        }
+        velocity += p.tremolo / 0.98661 * Math.tanh(2.5 * Math.sin(TWO_PI * p.tremoloPhase));
+      }
+      if (this.pizzicato) velocity = 0;
+      // The weight is set from the speed asked for, so it is on the string
+      // before the bow gets going: a player sets the bow down, then draws it.
+      const force = strokeForce * p.forceScale * p.speedScale * (Math.abs(this.steadyTarget) + this.tremoloAmp)
+                  / (p.str.beta() * 0.5);
+      p.grain += (this.noise() * 0.02 - p.grain) * 0.15;   // rosin
+      if (p.pluckIn === 0) {
+        const width = Math.round(sr * this.os * (0.0028 - 0.0018 * p.pluckStrength));
+        p.str.pluck(1.2 * Math.pow(10, (p.pluckStrength - 1) * 24 / 20), width);
+      }
+      if (p.pluckIn >= 0) p.pluckIn--;
+      let s = 0;
+      for (let k = 0; k < this.os; k++) s += p.str.process(velocity, force, this.restNow, p.grain);
+      s /= this.os;
+      // The rasp in the last quarter of the pressure: an asymmetric buzz
+      // pulsing at a rate that divides the pitch, so it rasps with a pitch.
+      p.follow += (Math.abs(s) - p.follow) * this.followCoef;
+      if (this.skorr > 0) {
+        p.rattlePhase += this.rattleHz / sr; if (p.rattlePhase >= 1) p.rattlePhase -= 1;
+        const pulse = 0.5 + 0.5 * Math.cos(TWO_PI * p.rattlePhase);
+        const amount = this.skorr * this.settle * (0.4 + 0.6 * pulse);
+        const scale = Math.max(p.follow, 1e-4) * 1.6;
+        const x = s / scale * (1 + 4 * amount);
+        const shaped = (Math.tanh(x + 0.4) - Math.tanh(0.4)) * scale;
+        s += amount * (shaped - s);
+      }
+      left += s * (this.section ? p.panLeft : 1);
+      right += s * (this.section ? p.panRight : 1);
+    }
+    const inst = StringEngine.instruments()[this.inst];
+    const gain = inst.trim * 0.21 * (this.section ? 0.55 : 1);
+    let l, r;
+    if (this.section) { l = this.bodyL.process(left); r = this.bodyR.process(right); }
+    else { l = r = this.bodyL.process(left); }
+    const dl = l - this.dcInL + this.dcCoef * this.dcL; this.dcInL = l; this.dcL = dl;
+    const dr = r - this.dcInR + this.dcCoef * this.dcR; this.dcInR = r; this.dcR = dr;
+    out[0] = StringEngine.ceiling(dl * gain); out[1] = StringEngine.ceiling(dr * gain);
+    const peak = Math.max(Math.abs(out[0]), Math.abs(out[1]));
+    this.level = peak > this.level ? peak : this.level * this.levelFall;
+    if (this.bowTargetSpeed <= 0 && peak < 1e-5) this.quiet++; else this.quiet = 0;
+  }
+
+  /* Untouched below 0.7, then bent towards 1. */
+  static ceiling(x) { const a = Math.abs(x); return a <= 0.7 ? x : Math.sign(x) * (0.7 + 0.3 * Math.tanh((a - 0.7) / 0.3)); }
+}
+
+/* A loop of what was played on an instrument, by the beat. Unlike the Juno's,
+   events keep their exact place — a strum is a spray of plucks and a bow
+   stroke a stream of speeds — and play back in order as the song passes them.
+   Recording goes round until REC again, and what is played from a moment to
+   the end of that pass replaces what was there, per kind, like tape. */
+class LoopTrack {
+  constructor() { this.state = 'empty'; this.bars = 2; this.events = []; this.start = 0; this.punch = {}; this.last = -1e-6; }
+}
+
 /* The groovebox: the Omni's 48-voice strings and its comp, the Juno with its loop
    recorder, the 303, and the drum machine, all on one clock. Each instrument is
    a channel with a gain and a DJ filter; the Omni and the Juno share the room,
@@ -2231,14 +2731,18 @@ class OmniDSP {
     this.liveHeld = false;   // a finger on the phrase plate wins over the loop
     // Transpose per mixer channel, in semitones. What is played and recorded
     // stays as pressed; only what sounds moves. The drums are retuned instead.
-    this.tr = { omni: 0, juno: 0, acid: 0, drums: 0 }; this.lastComp = null; this.drumTracks = null;
+    this.tr = { omni: 0, juno: 0, acid: 0, drums: 0, violin: 0 }; this.lastComp = null; this.drumTracks = null;
+    // The violin, and the loops of the Omni and the violin.
+    this.violin = new StringEngine(sr); this.vframe = [0, 0]; this.vNote = 62;
+    this.tracks = { omni: new LoopTrack(), violin: new LoopTrack() };
+    this.lastOmniChord = null;
     // The metronome: a short sine blip on every beat, higher on bar one.
     this.metroOn = false; this.metroEnv = 0; this.metroPhase = 0; this.metroInc = 0;
     this.metroCoef = Math.pow(0.001, 1 / (sr * 0.035));
     this.genre = 0;
     // The mixer.
     this.mix = {};
-    for (const ch of ['omni', 'juno', 'acid', 'drums'])
+    for (const ch of ['omni', 'juno', 'acid', 'drums', 'violin'])
       this.mix[ch] = { target: 1, gain: 1, mode: 0, svf: [new Svf(), new Svf()] };
     this.lastAcid = null; this.lastJuno = null;
     this.outbox = [];
@@ -2294,6 +2798,7 @@ class OmniDSP {
     if (on) {
       this.beatPos = 0; this.lastSix = -1;
       this.loop.start = 0; this.loop.punch = {};
+      for (const T of Object.values(this.tracks)) { T.start = 0; T.punch = {}; T.last = -1e-6; }
       this.acid.running = true;
       this.comp.setRunning(true);
       this.juno.external = true;
@@ -2306,6 +2811,13 @@ class OmniDSP {
       if (L.state === 'armed') L.state = L.events.length ? 'play' : 'empty';
       // A phrase the loop was playing stops with the song.
       if (L.state === 'play') this.juno.stop();
+      for (const name in this.tracks) {
+        const T = this.tracks[name];
+        if (T.state === 'rec') this.finishTrack(name);
+        if (T.state === 'armed') { T.state = T.events.length ? 'play' : 'empty'; this.postTrack(name); }
+      }
+      // A bow the loop was drawing lifts with the song.
+      if (this.tracks.violin.events.length) { this.violin.setBow(0); this.violin.setHand(0); }
       this.post({ type: 'tick', six: -1 });
       this.postLoop();
     }
@@ -2361,6 +2873,7 @@ class OmniDSP {
     if (st === this.tr[ch]) return;
     this.tr[ch] = st;
     if (ch === 'omni') this.setComp();
+    else if (ch === 'violin') this.violin.setNote(this.vNote + st);
     else if (ch === 'acid') { if (this.lastAcid) this.setAcid(this.lastAcid); }
     else if (ch === 'drums') this.setDrums();
     else if (ch === 'juno' && this.lastChord) {
@@ -2466,6 +2979,97 @@ class OmniDSP {
     }
   }
 
+  /* ---------- the Omni's and the violin's loops ---------- */
+
+  /* What a recorded or live message does. */
+  applyTrackMsg(m) {
+    if (m.type === 'pluck') this.queue.push({ s: m.string, v: m.vel, w: Math.round((m.delay || 0) * this.sr), done: false });
+    else if (m.type === 'omniChord') { this.notes = m.notes; this.lastComp = m.comp; this.setComp(); }
+    else if (m.type === 'violinNote') { this.vNote = m.midi; this.violin.setNote(m.midi + this.tr.violin); }
+    else if (m.type === 'violinBow') { this.violin.setBow(m.bow); this.violin.setHand(m.hand); }
+    else if (m.type === 'violinPluck') this.violin.pluck(m.strength);
+  }
+
+  /* Live playing goes into the loop at its exact place while REC is on, and
+     replaces that kind from there to the end of the pass. Playing along
+     without REC holds the loop's chords, notes and bow off the same way,
+     erasing nothing; plucks played along are only added to what plays. */
+  trackRecord(name, kind, msg) {
+    const T = this.tracks[name];
+    if (!this.playing || (T.state !== 'rec' && T.state !== 'play')) return;
+    const len = T.bars * 16, rel = this.beatPos * 4 - T.start;
+    const pos = ((rel % len) + len) % len, pass = Math.floor(rel / len);
+    if (T.state === 'play') { if (kind !== 'pluck') T.punch[kind] = pass; return; }
+    T.punch[kind] = pass;
+    T.events.push({ pos, kind, msg, pass });
+  }
+
+  trackArm(name) {
+    const T = this.tracks[name];
+    if (!T) return;
+    if (T.state === 'rec') this.finishTrack(name);
+    else if (T.state === 'armed') { T.state = T.events.length ? 'play' : 'empty'; this.postTrack(name); }
+    else if (T.events.length && this.playing) { T.state = 'rec'; T.punch = {}; this.postTrack(name); }
+    else { T.state = 'armed'; this.postTrack(name); }
+  }
+
+  finishTrack(name) {
+    const T = this.tracks[name];
+    T.punch = {};
+    for (const e of T.events) delete e.pass;
+    T.events.sort((a, b) => a.pos - b.pos);
+    T.state = T.events.length ? 'play' : 'empty';
+    this.postTrack(name);
+  }
+
+  postTrack(name) {
+    const T = this.tracks[name];
+    this.post({ type: 'track', track: name, state: T.state, bars: T.bars, events: T.events });
+  }
+
+  /* A new take starts on a bar line, with the chord or note sounding now. */
+  trackStep(name, six) {
+    const T = this.tracks[name];
+    if (T.state !== 'armed' || six % 16 !== 0) return;
+    if (!T.events.length) {
+      T.start = six; T.events = []; T.last = six - 1e-6;
+      if (name === 'omni' && this.lastOmniChord) T.events.push({ pos: 0, kind: 'chord', msg: this.lastOmniChord, pass: 0 });
+      if (name === 'violin') T.events.push({ pos: 0, kind: 'note', msg: { type: 'violinNote', midi: this.vNote }, pass: 0 });
+    }
+    T.state = 'rec'; T.punch = {};
+    this.postTrack(name);
+  }
+
+  trackPos(name, six) {
+    const T = this.tracks[name], len = T.bars * 16;
+    if (T.state !== 'play' && T.state !== 'rec') return -1;
+    return (((six - T.start) % len) + len) % len;
+  }
+
+  /* Once a block: play what the song has passed since the last. */
+  dispatchTracks() {
+    const now = this.beatPos * 4;
+    for (const name in this.tracks) {
+      const T = this.tracks[name], from = T.last;
+      T.last = now;
+      if ((T.state !== 'play' && T.state !== 'rec') || now <= from) continue;
+      const len = T.bars * 16, r0 = from - T.start;
+      const p0 = ((r0 % len) + len) % len, pass0 = Math.floor(r0 / len), span = Math.min(len, now - from);
+      const rec = T.state === 'rec';
+      let dead = false;
+      for (const e of T.events) {
+        let x = e.pos, pass = pass0;
+        if (x < p0) { x += len; pass++; }
+        if (x >= p0 + span) continue;
+        if (rec && e.pass === pass) continue;   // played this pass by the finger
+        if (T.punch[e.kind] === pass && e.pass !== pass) { if (rec) { e.dead = true; dead = true; } continue; }
+        this.applyTrackMsg(e.msg);
+        if (e.kind === 'chord' || e.kind === 'note' || e.kind === 'pluck') this.post({ type: 'trackEvent', track: name, e });
+      }
+      if (dead) T.events = T.events.filter((e) => !e.dead);
+    }
+  }
+
   /* The phrase the loop has at this moment: the last one at or before where it
      is, or, before the first, the last one round the end. */
   loopPhraseNow() {
@@ -2502,12 +3106,44 @@ class OmniDSP {
       this.metroInc = (s16 === 0 ? 1760 : 1320) / this.sr;
     }
     this.loopStep(six);
-    this.post({ type: 'tick', six, acid: six % this.acid.length, drum: s16, loop: this.loopPos(six) });
+    for (const name in this.tracks) this.trackStep(name, six);
+    this.post({ type: 'tick', six, acid: six % this.acid.length, drum: s16, loop: this.loopPos(six),
+                tracks: { omni: this.trackPos('omni', six), violin: this.trackPos('violin', six) } });
   }
 
   message(m) {
     if (m.type === 'chord') this.notes = m.notes;
-    else if (m.type === 'pluck') this.queue.push({ s: m.string, v: m.vel, w: Math.round(m.delay * this.sr), done: false });
+    else if (m.type === 'pluck') { this.trackRecord('omni', 'pluck', m); this.applyTrackMsg(m); }
+    else if (m.type === 'omniChord') { this.lastOmniChord = m; this.trackRecord('omni', 'chord', m); this.applyTrackMsg(m); }
+    else if (m.type === 'violinNote') { this.trackRecord('violin', 'note', m); this.applyTrackMsg(m); }
+    else if (m.type === 'violinBow') { this.trackRecord('violin', 'bow', m); this.applyTrackMsg(m); }
+    else if (m.type === 'violinPluck') { this.trackRecord('violin', 'pluck', m); this.applyTrackMsg(m); }
+    else if (m.type === 'violinSet') { this.violin.setInstrument(m.inst); this.violin.setSection(m.section); this.violin.setPizzicato(m.pizz); }
+    else if (m.type === 'violinPressure') this.violin.setPressure(m.amount);
+    else if (m.type === 'violinGlide') this.violin.setGlide(m.amount);
+    else if (m.type === 'trackArm') this.trackArm(m.track);
+    else if (m.type === 'trackBars') { const T = this.tracks[m.track]; if (T && T.state !== 'rec') { T.bars = m.bars; this.postTrack(m.track); } }
+    else if (m.type === 'trackToggle') {
+      const T = this.tracks[m.track];
+      if (!T || !T.events.length || T.state === 'rec') return;
+      T.state = T.state === 'play' ? 'off' : 'play';
+      if (T.state === 'off' && m.track === 'violin') { this.violin.setBow(0); this.violin.setHand(0); }
+      this.postTrack(m.track);
+    }
+    else if (m.type === 'trackClear') {
+      const T = this.tracks[m.track];
+      if (!T) return;
+      T.events = []; T.state = 'empty'; T.punch = {};
+      if (m.track === 'violin') { this.violin.setBow(0); this.violin.setHand(0); }
+      this.postTrack(m.track);
+    }
+    else if (m.type === 'trackLoad') {
+      const T = this.tracks[m.track];
+      if (!T) return;
+      T.events = m.events || []; T.bars = m.bars || 2;
+      T.state = T.events.length ? (m.state === 'off' ? 'off' : 'play') : 'empty';
+      this.postTrack(m.track);
+    }
     else if (m.type === 'fx') { this.chorus = m.chorus; this.verb.on = m.reverb; }
     else if (m.type === 'compChord') { this.lastComp = m; this.setComp(); }
     else if (m.type === 'rhythm') this.comp.configure(m);
@@ -2603,7 +3239,9 @@ class OmniDSP {
   process(L, R, n) {
     const q = this.queue, fr = this.frame, jf = this.jframe, af = this.aframe, df = this.dframe;
     const mix = this.mix, set = this.acidSet;
-    const duckLen = this.sr * 60 / this.bpm * 0.5;
+    const duckLen = this.sr * 60 / this.bpm * 0.5, vf = this.vframe;
+    if (this.playing) this.dispatchTracks();
+    this.violin.begin();
     for (let i = 0; i < n; i++) {
       if (this.playing) {
         const six = Math.floor(this.beatPos * 4);
@@ -2628,8 +3266,11 @@ class OmniDSP {
       this.ensJ.process(this.juno.process() * 0.9, jf);
       this.delay.process(jf);
       this.channel(mix.juno, jf);
-      // The Omni and the Juno share the room.
-      fr[0] += jf[0]; fr[1] += jf[1];
+      // The violin: bow, string and body, then its channel.
+      this.violin.process(vf);
+      this.channel(mix.violin, vf);
+      // The Omni, the Juno and the violin share the room.
+      fr[0] += jf[0] + vf[0]; fr[1] += jf[1] + vf[1];
       this.verb.process(fr);
       // The 303, dry: the kick pushes it down and lets it swell back.
       const d = Math.min(1, this.sinceKick / duckLen);
@@ -2813,7 +3454,8 @@ function send(m) {
 }
 
 function workletSource() {
-  return [PluckVoice, Ensemble, CompVoice, Comp, Freeverb, JunoVoice, TempoDelay, JunoEngine, AcidVoice, AcidEngine, Svf, PumpKit, OmniDSP].map((c) => c.toString()).join('\n') + `
+  return [PluckVoice, Ensemble, CompVoice, Comp, Freeverb, JunoVoice, TempoDelay, JunoEngine, AcidVoice, AcidEngine, Svf, PumpKit,
+          FractionalDelay, BowedString, StringBody, StringEngine, LoopTrack, OmniDSP].map((c) => c.toString()).join('\n') + `
 class OmniProcessor extends AudioWorkletProcessor {
   constructor() { super(); this.dsp = new OmniDSP(sampleRate); this.port.onmessage = (e) => this.dsp.message(e.data); }
   process(inputs, outputs) {
@@ -2878,6 +3520,14 @@ async function startAudio() {
   send({ type: 'metronome', on: transport.metronome });
   sendJunoParams();
   sendJunoChord();
+  sendViolin();
+  send({ type: 'omniChord', notes: chordState.omni.notes, comp: chordVoicing(chordState.omni.pc, chordState.omni.quality),
+         pc: chordState.omni.pc, quality: chordState.omni.quality, label: chordState.omni.label });
+  for (const name in tracksUI) {
+    const t = tracksUI[name];
+    if (t.events.length) send({ type: 'trackLoad', track: name, events: t.events, bars: t.bars, state: t.state });
+    else send({ type: 'trackBars', track: name, bars: t.bars });
+  }
   if (loopUI.events.length) send({ type: 'loopLoad', events: loopUI.events, bars: loopUI.bars, state: loopUI.state });
   else send({ type: 'loopBars', bars: loopUI.bars });
   updateChordSound();
@@ -2909,17 +3559,21 @@ function onDsp(m) {
   if (m.type === 'tick') onTick(m);
   else if (m.type === 'loop') onLoop(m);
   else if (m.type === 'loopEvent') onLoopEvent(m.e);
+  else if (m.type === 'track') recorders[m.track].onState(m);
+  else if (m.type === 'trackEvent') onTrackEvent(m.track, m.e);
 }
 
 function onTick(m) {
   if (m.six < 0) {
     beatLed.classList.remove('on', 'one');
     showPlayhead(-1); showDrumHead(-1); showLoopPos(-1);
+    for (const r of Object.values(recorders)) r.showPos(-1);
     return;
   }
   if (m.six % 4 === 0) showBeat(m.six / 4);
   if (m.free) return;
   showPlayhead(m.acid); showDrumHead(m.drum); showLoopPos(m.loop);
+  if (m.tracks) for (const k in m.tracks) recorders[k].showPos(m.tracks[k]);
 }
 
 /* ---------- rhythm ---------- */
@@ -2962,6 +3616,7 @@ const tabEls = [...document.querySelectorAll('.tab')];
 function setTab(name) {
   // A finger left on the Juno's plate lets go when its tab goes.
   if (inst === 'juno' && name !== 'juno' && phraseFingers.size) { phraseFingers.clear(); sendPhrase(null); }
+  if (inst === 'violin' && name !== 'violin') releaseBow();
   inst = name;
   document.body.dataset.inst = name;
   for (const t of tabEls) t.setAttribute('aria-selected', String(t.dataset.tab === name));
@@ -3127,12 +3782,14 @@ const DRUM_FACTORY = [
 ];
 const drumState = { pattern: 0, patterns: clone(DRUM_FACTORY), sel: 0, params: PumpKit.defaults() };
 
-const MIX_CHANNELS = [['drums', 'Drums'], ['acid', '303'], ['juno', 'Juno'], ['omni', 'Omnichord']];
+const MIX_CHANNELS = [['drums', 'Drums'], ['acid', '303'], ['juno', 'Juno'], ['omni', 'Omnichord'], ['violin', 'Violin']];
 const mixState = {};
 for (const [ch] of MIX_CHANNELS) mixState[ch] = { volume: 0.8, mute: false, filter: 0, transpose: 0 };
 
 const loopUI = { state: 'empty', bars: 2, events: [] };
 let savedLayout = 'fifths';
+const tracksUI = { omni: { state: 'empty', bars: 2, events: [] }, violin: { state: 'empty', bars: 2, events: [] } };
+const violinState = { inst: 0, key: 7, scale: 0, pressure: 0.45, glide: 0.15, section: false, pizz: false, note: null };
 try {
   const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
   if (saved) {
@@ -3156,6 +3813,8 @@ try {
     if (saved.bpm) rhythm.bpm = saved.bpm;
     if (saved.metronome) transport.metronome = true;
     if (saved.layout) savedLayout = saved.layout;
+    if (saved.violin) Object.assign(violinState, saved.violin, { note: null });
+    if (saved.tracks) for (const k in tracksUI) if (saved.tracks[k]) Object.assign(tracksUI[k], saved.tracks[k]);
     (saved.patterns || []).forEach((v, i) => {
       if (acidPatterns[i]) Object.assign(acidPatterns[i], v, { name: FACTORY_PATTERNS[i].name });
       else if (v && v.user) acidPatterns.push(v);
@@ -3172,7 +3831,7 @@ function save() {
                                                     acidState, patterns: acidPatterns, drums: drumState,
                                                     mix: mixState, loop: loopUI, bpm: rhythm.bpm,
                                                     metronome: transport.metronome,
-                                                    layout: layoutSel.value }));
+                                                    layout: layoutSel.value, violin: violinState, tracks: tracksUI }));
     } catch (e) {}
   }, 300);
 }
@@ -3585,9 +4244,8 @@ function setChord(pc, quality, label) {
   current = chordState[part] = makeChord(pc, quality, label);
   if (part === 'juno') sendJunoChord();
   else {
-    send({ type: 'chord', notes: current.notes });
+    sendOmniChord();
     renderPlate();
-    sendCompChord();
   }
   renderKeys();
   renderReadout();
@@ -3619,6 +4277,12 @@ function sendJunoChord() { send({ type: 'junoChord', ...junoChord() }); }
 const subNameEl = document.getElementById('subName');
 function renderReadout() {
   document.getElementById('readLabel').textContent = inst === 'acid' ? 'Key' : 'Chord';
+  if (inst === 'violin') {
+    document.getElementById('readLabel').textContent = 'Note';
+    chordNameEl.textContent = violinState.note == null ? '–' : violinNoteName(violinState.note);
+    subNameEl.textContent = '';
+    return;
+  }
   if (inst === 'acid') {
     chordNameEl.textContent = PC_NAMES[acidState.key];
     subNameEl.textContent = ACID_SCALES[acidState.scale].name + ' · ' + title(currentPattern().name);
@@ -3643,6 +4307,12 @@ function chordVoicing(pc, quality) {
   const q = QUALITIES[quality];
   const base = 55 + ((((pc - 55) % 12) + 12) % 12);
   return { chord: [base, base + q.third, base + q.colour], bass: 36 + pc, fifth: 36 + (pc + 7) % 12 };
+}
+
+/* The Omni's chord as one message, so its loop can record it whole. */
+function sendOmniChord() {
+  const c = chordState.omni;
+  send({ type: 'omniChord', notes: c.notes, comp: chordVoicing(c.pc, c.quality), pc: c.pc, quality: c.quality, label: c.label });
 }
 
 function sendCompChord() {
@@ -4547,6 +5217,248 @@ function setLayout(value) {
   if (inst === 'omni') renderPlate();
 }
 layoutSel.addEventListener('change', () => { setLayout(layoutSel.value); save(); });
+
+
+/* =============================================================================
+   Loop recorders for the Omnichord and the violin. They work like the Juno's:
+   REC starts PLAY and records from the next bar, round and round until REC
+   again; REC on a loop that is there records over it at once. What is played
+   keeps its exact place, so a strum stays a strum and a bow stroke a stroke.
+   ============================================================================= */
+
+const recorders = {};
+function makeRecorder(name) {
+  const el = document.querySelector('.rec[data-track="' + name + '"]');
+  const t = tracksUI[name];
+  const recBtn = el.querySelector('.recbtn'), playBtn = el.querySelector('.tplay'), clearBtn = el.querySelector('.tclear');
+  const barBtns = [...el.querySelectorAll('.seg button')], prog = el.querySelector('.rec-bar span');
+  const render = () => {
+    el.dataset.state = t.state;
+    recBtn.setAttribute('aria-label', { armed: 'Recording from the next bar', rec: 'Recording; tap to stop' }[t.state] || 'Record');
+    for (const b of barBtns) b.setAttribute('aria-pressed', String(+b.dataset.bars === t.bars));
+    playBtn.setAttribute('aria-pressed', String(t.state === 'play'));
+    playBtn.disabled = !t.events.length || t.state === 'rec';
+    clearBtn.disabled = !t.events.length && t.state !== 'rec';
+  };
+  const showPos = (pos) => { prog.style.width = pos < 0 ? '0' : ((pos + 1) / (t.bars * 16)) * 100 + '%'; };
+  recBtn.addEventListener('click', () => {
+    if (!transport.playing) setTransport(true);
+    send({ type: 'trackArm', track: name });
+  });
+  for (const b of barBtns) b.addEventListener('click', () => send({ type: 'trackBars', track: name, bars: +b.dataset.bars }));
+  playBtn.addEventListener('click', () => send({ type: 'trackToggle', track: name }));
+  clearBtn.addEventListener('click', () => {
+    if (!clearBtn.dataset.armed) { arm(clearBtn, true); return; }
+    arm(clearBtn, false);
+    send({ type: 'trackClear', track: name });
+  });
+  if (t.state !== 'play' && t.state !== 'off') t.state = t.events.length ? 'play' : 'empty';
+  render();
+  return {
+    onState(m) {
+      Object.assign(t, { state: m.state, bars: m.bars, events: m.events });
+      if (m.state !== 'play' && m.state !== 'rec') showPos(-1);
+      render();
+      save();
+    },
+    showPos
+  };
+}
+recorders.omni = makeRecorder('omni');
+recorders.violin = makeRecorder('violin');
+
+/* What a loop plays shows on the keys, the plate and the fingerboard. */
+function onTrackEvent(name, e) {
+  const m = e.msg;
+  if (name === 'omni' && e.kind === 'chord') {
+    chordState.omni = makeChord(m.pc, m.quality, labelFor(m.pc, m.quality));
+    if (inst === 'omni') { current = chordState.omni; renderKeys(); renderPlate(); renderReadout(); }
+  } else if (name === 'omni' && e.kind === 'pluck') {
+    if (inst === 'omni') flash(m.string, m.vel);
+  } else if (name === 'violin' && e.kind === 'note') {
+    violinState.note = m.midi;
+    if (inst === 'violin') { renderFingerboard(); renderReadout(); }
+  } else if (name === 'violin' && e.kind === 'pluck') {
+    if (inst === 'violin') flashBowPad();
+  }
+}
+
+
+/* =============================================================================
+   Violin: a fingerboard of the scale's notes on the left, three octaves from
+   the instrument's lowest string, and the bow on the right.
+   ============================================================================= */
+
+const VIOLIN_SCALES = [
+  ['Major', [0, 2, 4, 5, 7, 9, 11]], ['Minor', [0, 2, 3, 5, 7, 8, 10]], ['Harm minor', [0, 2, 3, 5, 7, 8, 11]],
+  ['Major pent', [0, 2, 4, 7, 9]], ['Minor pent', [0, 3, 5, 7, 10]], ['Blues', [0, 3, 5, 6, 7, 10]],
+  ['Whole tone', [0, 2, 4, 6, 8, 10]], ['Freygish', [0, 1, 4, 5, 7, 8, 10]], ['Chromatic', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]]
+];
+const violinInstSel = document.getElementById('violinInst');
+const violinKeySel = document.getElementById('violinKey');
+const violinScaleSel = document.getElementById('violinScale');
+const fingerboardEl = document.getElementById('fingerboard');
+const bowPadEl = document.getElementById('bowPad');
+PC_NAMES.forEach((n, i) => violinKeySel.add(new Option(n, i)));
+VIOLIN_SCALES.forEach(([n], i) => violinScaleSel.add(new Option(n, i)));
+
+function violinNoteName(midi) {
+  const flats = [5, 10, 3, 8, 1].includes(violinState.key);
+  return (flats ? PC_NAMES : PC_SHARPS)[((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1);
+}
+
+/* The key's root at or above the instrument's lowest open string. */
+function violinTonic() {
+  const lowest = StringEngine.instruments()[violinState.inst].open[0];
+  return lowest + (((violinState.key - lowest) % 12) + 12) % 12;
+}
+
+let fbCells = [];
+function buildFingerboard() {
+  const tones = VIOLIN_SCALES[violinState.scale][1], count = tones.length, cols = count + 1, tonic = violinTonic();
+  fingerboardEl.textContent = '';
+  fingerboardEl.style.gridTemplateColumns = 'repeat(' + cols + ', minmax(0, 1fr))';
+  fingerboardEl.style.gridTemplateRows = 'repeat(3, minmax(0, 1fr))';
+  fbCells = [];
+  for (let row = 0; row < 3; row++) {
+    const octave = 2 - row;   // the top row is the highest
+    for (let c = 0; c < cols; c++) {
+      const midi = tonic + tones[c % count] + 12 * Math.floor(c / count) + 12 * octave;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'fb-note' + (c % count === 0 ? ' tonic' : '');
+      b.dataset.midi = midi;
+      const name = violinNoteName(midi);
+      b.innerHTML = name.replace(/-?\d+$/, '') + '<small>' + name.match(/-?\d+$/)[0] + '</small>';
+      b.setAttribute('aria-label', name);
+      fingerboardEl.appendChild(b);
+      fbCells.push(b);
+    }
+  }
+  renderFingerboard();
+}
+function renderFingerboard() {
+  for (const b of fbCells) b.classList.toggle('lit', +b.dataset.midi === violinState.note);
+}
+
+function setViolinNote(midi) {
+  violinState.note = midi;
+  send({ type: 'violinNote', midi });
+  renderFingerboard();
+  renderReadout();
+}
+
+/* Fingers stack like a player's: lifting the top one falls back to the one
+   still down under it, so a trill is two fingers. With none down, the last
+   note stays — a long note does not need a thumb on it. */
+const fbHeld = new Map();   // pointerId -> cell
+fingerboardEl.addEventListener('pointerdown', (e) => {
+  const b = e.target.closest('.fb-note');
+  if (!b) return;
+  e.preventDefault();
+  fbHeld.delete(e.pointerId);
+  fbHeld.set(e.pointerId, b);
+  b.classList.add('down');
+  setViolinNote(+b.dataset.midi);
+  if (violinState.pizz) { send({ type: 'violinPluck', strength: 0.7 }); flashBowPad(); }
+});
+function liftFbFinger(e) {
+  const b = fbHeld.get(e.pointerId);
+  if (!b) return;
+  fbHeld.delete(e.pointerId);
+  b.classList.remove('down');
+  const rest = [...fbHeld.values()];
+  if (rest.length) setViolinNote(+rest[rest.length - 1].dataset.midi);
+}
+document.addEventListener('pointerup', liftFbFinger);
+document.addEventListener('pointercancel', liftFbFinger);
+
+/* The bow is a joystick from where the finger lands: sideways is the bow,
+   its direction and how fast, which is how loud; up is vibrato and down
+   tremolo. Lift the finger and the bow stops on the string. In pizzicato a
+   tap plucks, harder the higher it lands. */
+let bowFinger = null;
+const bpOrigin = bowPadEl.querySelector('.bp-origin'), bpFinger = bowPadEl.querySelector('.bp-finger'), bpLine = bowPadEl.querySelector('.bp-line');
+let bowFlashTimer = 0;
+function flashBowPad() {
+  if (reduceMotion) return;
+  bowPadEl.classList.add('hit');
+  clearTimeout(bowFlashTimer);
+  bowFlashTimer = setTimeout(() => bowPadEl.classList.remove('hit'), 110);
+}
+function moveBow(e) {
+  const r = bowPadEl.getBoundingClientRect(), reach = Math.min(r.width, r.height) * 0.38;
+  const shape = (v) => { const a = Math.abs(v); return a < 0.05 ? 0 : Math.sign(v) * Math.min(1, (a - 0.05) / 0.95); };
+  const bow = shape((e.clientX - bowFinger.x) / reach), hand = shape((bowFinger.y - e.clientY) / reach);
+  send({ type: 'violinBow', bow, hand });
+  const ox = bowFinger.x - r.left, oy = bowFinger.y - r.top, fx = e.clientX - r.left, fy = e.clientY - r.top;
+  bpOrigin.style.left = ox + 'px'; bpOrigin.style.top = oy + 'px';
+  bpFinger.style.left = fx + 'px'; bpFinger.style.top = fy + 'px';
+  bpLine.style.left = ox + 'px'; bpLine.style.top = oy - 1 + 'px';
+  bpLine.style.width = Math.hypot(fx - ox, fy - oy) + 'px';
+  bpLine.style.transform = 'rotate(' + Math.atan2(fy - oy, fx - ox) + 'rad)';
+}
+bowPadEl.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  if (violinState.pizz) {
+    const r = bowPadEl.getBoundingClientRect();
+    send({ type: 'violinPluck', strength: 0.3 + 0.7 * (1 - (e.clientY - r.top) / r.height) });
+    flashBowPad();
+    return;
+  }
+  if (bowFinger) return;   // one bow
+  try { bowPadEl.setPointerCapture(e.pointerId); } catch (err) {}
+  bowFinger = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  bowPadEl.classList.add('active');
+  moveBow(e);
+});
+bowPadEl.addEventListener('pointermove', (e) => { if (bowFinger && e.pointerId === bowFinger.id) moveBow(e); });
+function releaseBow() {
+  if (!bowFinger) return;
+  bowFinger = null;
+  bowPadEl.classList.remove('active');
+  send({ type: 'violinBow', bow: 0, hand: 0 });
+}
+bowPadEl.addEventListener('pointerup', (e) => { if (bowFinger && e.pointerId === bowFinger.id) releaseBow(); });
+bowPadEl.addEventListener('pointercancel', (e) => { if (bowFinger && e.pointerId === bowFinger.id) releaseBow(); });
+
+function sendViolin() {
+  send({ type: 'violinSet', inst: violinState.inst, section: violinState.section, pizz: violinState.pizz });
+  send({ type: 'violinPressure', amount: violinState.pressure });
+  send({ type: 'violinGlide', amount: violinState.glide });
+  if (violinState.note != null) send({ type: 'violinNote', midi: violinState.note });
+}
+
+/* A new instrument, key or scale: a new fingerboard, the finger on its middle tonic. */
+function violinChanged() {
+  buildFingerboard();
+  setViolinNote(violinTonic() + 12);
+  sendViolin();
+  save();
+}
+violinInstSel.addEventListener('change', () => { violinState.inst = +violinInstSel.value; violinChanged(); });
+violinKeySel.addEventListener('change', () => { violinState.key = +violinKeySel.value; violinChanged(); });
+violinScaleSel.addEventListener('change', () => { violinState.scale = +violinScaleSel.value; violinChanged(); });
+for (const [id, key] of [['pizzToggle', 'pizz'], ['sectionToggle', 'section']]) {
+  const b = document.getElementById(id);
+  b.setAttribute('aria-pressed', String(violinState[key]));
+  b.addEventListener('click', () => {
+    violinState[key] = !violinState[key];
+    b.setAttribute('aria-pressed', String(violinState[key]));
+    if (key === 'pizz') { releaseBow(); bowPadEl.classList.toggle('pizz', violinState.pizz); }
+    sendViolin();
+    save();
+  });
+}
+bowPadEl.classList.toggle('pizz', violinState.pizz);
+makeFader('violinPressure', 'pressure', () => violinState, () => { send({ type: 'violinPressure', amount: violinState.pressure }); save(); });
+makeFader('violinGlide', 'glide', () => violinState, () => { send({ type: 'violinGlide', amount: violinState.glide }); save(); });
+violinInstSel.value = String(violinState.inst);
+violinKeySel.value = String(violinState.key);
+violinScaleSel.value = String(violinState.scale);
+buildFingerboard();
+violinState.note = violinTonic() + 12;
+renderFingerboard();
 
 // iOS still scrolls and zooms on touchmove unless it is cancelled outright.
 document.addEventListener('touchmove', (e) => {

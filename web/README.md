@@ -1,8 +1,8 @@
 # Chordtroller Omni — web
 
 The Omnichord engine on a touch screen, to try on an iPhone in Safari, as a
-small groovebox: drums, a 303, a Juno and the Omnichord, each under its own
-tab, on one clock, with a mixer. One file, no build step: `index.html`.
+small groovebox: drums, a 303, a Juno, the Omnichord and a violin, each under
+its own tab, on one clock, with a mixer. One file, no build step: `index.html`.
 
 Run it locally with any static server, for example `python3 -m http.server` in
 this folder. Do not open the file straight from disk: the browser then refuses
@@ -10,12 +10,13 @@ to load the AudioWorklet and the sound falls back to the main thread.
 
 ## Groovebox
 
-- **The tabs** at the top left — DRUMS, 303, JUNO, OMNICHORD and MIXER — only
+- **The tabs** at the top left — DRUMS, 303, JUNO, OMNICHORD, VIOLIN and MIXER
+  (OMNI and MIX on smaller screens) — only
   change what is in front. Whatever plays keeps playing, so you can lay down a
   beat, go to the 303 and turn its knobs, then play chords on the Omnichord.
   The page opens on the tab used last.
-- **PLAY** is shared: the drums, the 303, the Omnichord's comp and the Juno's
-  loop start together on beat one of bar one and stop together. The tempo
+- **PLAY** is shared: the drums, the 303, the Omnichord's comp and the loops
+  start together on beat one of bar one and stop together. The tempo
   (40–220 BPM in steps of 4) is shared too.
 - **The metronome** next to PLAY clicks every beat while PLAY is on, higher on
   beat one. Its light blinks on every beat whether the click is on or not, and
@@ -186,9 +187,51 @@ Tonnetz play the button pressed.
   the room. The chorus and the room are set with their mix controls in synth
   edit.
 
+### Recording
+
+The row under the settings records the Omnichord — the chord buttons and the
+strum plate — as a loop, the same way as the Juno (see *Juno, Recording*): REC
+starts PLAY and records from the next bar over 1, 2 or 4 bars, round and round
+until REC again, and REC on a loop that is there records over it at once.
+Plucks keep their exact place rather than the nearest sixteenth, so a strum
+plays back as it was played. What you play while REC is on replaces that kind
+— chords or plucks — from there to the end of the pass, like tape. Chords
+pressed with the loop playing and REC off hold until the loop comes round;
+strums played along are added to what the loop plays.
+
+## Violin
+
+The VIOLIN tab is Chordtroller's bowed string, from `BowedString.h` and
+`StringEngine.h`: a digital waveguide string with the bow as a friction law
+solved every sample, in a body of violin resonances. Nothing makes an envelope:
+a note starts because the bow starts moving on the string and stops when the
+bow stops on it.
+
+- **The fingerboard** on the left is the scale's notes over three octaves, the
+  lowest row from the instrument's lowest string. Hold a note to stop the
+  string. Fingers stack like a player's: lifting the top one falls back to the
+  one still down, so a trill is two fingers; with none down, the last note
+  stays. **GLIDE** is how slowly the finger slides to the next note.
+- **The bow** is the pad on the right, a joystick from where the finger lands:
+  sideways draws the bow, right down-bow and left up-bow, faster the further
+  out, which is louder. Up adds vibrato, down tremolo. Lift the finger and the
+  bow stops on the string. **PRESSURE** is the index finger on the bow: low is
+  the airy sound of a bow too light to grip, the middle a clean tone, the top
+  leans in until it rasps.
+- **Instrument, key and scale** are in the menus: violin, viola, cello and
+  double bass; major, minor, harmonic minor, the two pentatonics, blues, whole
+  tone, freygish and chromatic. **PIZZ** plucks instead: a tap on the pad
+  plucks, harder the higher it lands, and a note on the fingerboard plucks as
+  it is pressed. **SECTION** is four players, each a little apart in tuning,
+  timing and place.
+- **Recording** works as on the Omnichord: the note, the bow and the plucks
+  are recorded where they were played, so a stroke plays back as it was drawn.
+- The violin goes into the room with the Omnichord and the Juno.
+
 ## Mixer
 
-The MIXER tab has a channel per instrument: DRUMS, 303, JUNO and OMNICHORD.
+The MIXER tab has a channel per instrument: DRUMS, 303, JUNO, OMNICHORD and
+VIOLIN.
 
 - **MUTE** silences the channel, and its tab is struck through so it shows from
   the other tabs too.
@@ -256,6 +299,8 @@ Ported as is, with the comments kept:
 - the room is Freeverb with the same parameters `juce::Reverb` has in the
   processor
 - voice allocation from `StrumEngine` — a ringing string takes back its own note
+- `BowedString.h` and `StringEngine.h` — the violin, without the drone,
+  the sordino and MIDI out
 
 The names of sounds, phrases and controls are in English here; Chordtroller
 itself uses Swedish names.
@@ -268,7 +313,8 @@ spread over the time the event covered, and a fast sweep plucks lighter, as in
 `strumVelocity`.
 
 New for the groovebox: the shared clock, the metronome, the drum sequencer, the
-mixer with its DJ filter and the Juno's loop.
+mixer with its DJ filter and transpose, and the loops. The violin's left hand
+is a fingerboard and its bow a pad instead of the two sticks.
 
 The ring length is fixed at four seconds (LT released) and the volume at full
 (RT in).
