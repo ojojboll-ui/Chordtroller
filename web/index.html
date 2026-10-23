@@ -146,6 +146,25 @@ body {
 .metro[aria-pressed="true"] { color: var(--ink); border-color: var(--led); }
 .metro svg { width: 15px; height: 15px; }
 
+/* ---------- songs ---------- */
+.songs { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 3px; border: 1px solid var(--line); border-radius: 7px; }
+.songs .sel { max-width: 150px; }
+.songs input[type="text"] {
+  font: 500 12px/1 var(--font-mono);
+  color: var(--ink);
+  background: var(--plate);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 8px 8px;
+  width: 120px;
+  min-width: 0;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.songs input[type="text"]:focus-visible { outline: 2px solid var(--led); outline-offset: 1px; }
+.song-msg { font: 400 11px/1.3 var(--font-mono); color: var(--ink-dim); }
+.songs .action:disabled { opacity: .4; cursor: default; }
+
 
 /* ---------- Juno loop recorder ---------- */
 .rec { position: relative; display: flex; align-items: center; gap: 6px; flex: none; padding-bottom: 5px; }
@@ -1048,7 +1067,20 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
         </div>
       </div>
       <div class="fx mix-only">
+        <div class="songs" role="group" aria-label="Songs">
+          <label class="sr" for="songSel">Saved songs</label>
+          <select id="songSel" class="sel"></select>
+          <button class="action" id="songLoad" type="button">Load</button>
+          <button class="action danger" id="songDelete" type="button">Delete</button>
+          <label class="sr" for="songName">Song name</label>
+          <input id="songName" type="text" maxlength="32" autocomplete="off" spellcheck="false" placeholder="Song name">
+          <button class="transport" id="songSave" type="button">Save</button>
+          <button class="action" id="songExport" type="button">Export</button>
+          <button class="action" id="songImport" type="button">Import</button>
+          <input id="songFile" type="file" accept=".json,application/json" hidden>
+        </div>
         <button class="action" id="mixReset" type="button">Reset mix</button>
+        <span class="song-msg" id="songMsg" role="status" aria-live="polite"></span>
       </div>
     </div>
     <div class="row3 omni-only">
@@ -3628,7 +3660,7 @@ const patternSel = document.getElementById('pattern');
 const bpmOut = document.getElementById('bpm');
 const beatLed = document.getElementById('beatLed');
 
-patternSel.addEventListener('change', () => { rhythm.pattern = patternSel.value; sendRhythm(); });
+patternSel.addEventListener('change', () => { rhythm.pattern = patternSel.value; sendRhythm(); save(); });
 document.getElementById('voice').addEventListener('change', () => sendVoiceSpec());
 
 /* ---------- instrument ---------- */
@@ -3659,7 +3691,7 @@ function sendJunoParams() {
 
 const genreSel = document.getElementById('genre');
 JunoEngine.genres().forEach((g, i) => genreSel.add(new Option(g.charAt(0) + g.slice(1).toLowerCase(), i)));
-genreSel.addEventListener('change', () => { junoState.genre = +genreSel.value; sendJunoChord(); renderReadout(); });
+genreSel.addEventListener('change', () => { junoState.genre = +genreSel.value; sendJunoChord(); renderReadout(); save(); });
 
 const patchSel = document.getElementById('patch');
 patchSel.addEventListener('change', () => { junoState.patch = +patchSel.value; sendJunoParams(); });
@@ -3810,6 +3842,7 @@ for (const [ch] of MIX_CHANNELS) mixState[ch] = { volume: 0.8, mute: false, filt
 
 const loopUI = { state: 'empty', bars: 2, events: [] };
 let savedLayout = 'fifths';
+let savedSession = null;
 const tracksUI = { omni: { state: 'empty', bars: 2, events: [] }, violin: { state: 'empty', bars: 2, events: [] } };
 const violinState = { inst: 0, key: 7, scale: 0, pressure: 0.45, glide: 0.15, section: false, pizz: false, sordino: false, drone: null, note: null };
 try {
@@ -3835,6 +3868,7 @@ try {
     if (saved.bpm) rhythm.bpm = saved.bpm;
     if (saved.metronome) transport.metronome = true;
     if (saved.layout) savedLayout = saved.layout;
+    if (saved.session) savedSession = saved.session;
     if (saved.violin) Object.assign(violinState, saved.violin, { note: null });
     if (saved.tracks) for (const k in tracksUI) if (saved.tracks[k]) Object.assign(tracksUI[k], saved.tracks[k]);
     (saved.patterns || []).forEach((v, i) => {
@@ -3845,15 +3879,27 @@ try {
 } catch (e) {}
 
 let saveTimer = 0;
+/* Everything a song is: the sounds, the patterns and loops, the mixer, the
+   tempo, the layout, and which sound, genre and rhythm each instrument has. */
+function snapshot() {
+  return { omni: sounds.omni, juno: sounds.juno, acid: sounds.acid, fx: fxState,
+           acidState, patterns: acidPatterns, drums: drumState,
+           mix: mixState, loop: loopUI, bpm: rhythm.bpm,
+           metronome: transport.metronome,
+           layout: layoutSel.value, violin: violinState, tracks: tracksUI,
+           session: {
+             junoState, voice: +voiceSel.value, acidSound: +acidSoundSel.value, acidPattern: +acidPatternSel.value,
+             rhythm: rhythm.pattern, chordOn: fx.chord, bassOn: fx.bass,
+             omniChord: { pc: chordState.omni.pc, quality: chordState.omni.quality },
+             junoChord: { pc: chordState.juno.pc, quality: chordState.juno.quality }
+           } };
+}
+
 function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     try {
-      localStorage.setItem(STORE, JSON.stringify({ omni: sounds.omni, juno: sounds.juno, acid: sounds.acid, fx: fxState,
-                                                    acidState, patterns: acidPatterns, drums: drumState,
-                                                    mix: mixState, loop: loopUI, bpm: rhythm.bpm,
-                                                    metronome: transport.metronome,
-                                                    layout: layoutSel.value, violin: violinState, tracks: tracksUI }));
+      localStorage.setItem(STORE, JSON.stringify(snapshot()));
     } catch (e) {}
   }, 300);
 }
@@ -5503,6 +5549,237 @@ buildFingerboard();
 violinState.note = violinTonic() + 12;
 renderFingerboard();
 
+
+/* =============================================================================
+   Songs. A song is everything the groovebox is at a moment — the sounds, the
+   patterns and loops, the mixer, the tempo, the layout and what each
+   instrument has selected — saved under a name. Loading one puts it in place
+   and starts the page over with it. Songs can leave as a file and come back.
+   ============================================================================= */
+
+/* What the selects and toggles had, which the rest of the save does not hold. */
+function applySession(sess) {
+  try {
+    if (sess.junoState) Object.assign(junoState, sess.junoState);
+    genreSel.value = String(junoState.genre);
+    if (junoState.patch < sounds.juno.length) patchSel.value = String(junoState.patch);
+    junoState.patch = +patchSel.value;
+    for (const [id, key] of [['junoBassToggle', 'bass'], ['extToggle', 'ext'], ['holdToggle', 'hold']])
+      document.getElementById(id).setAttribute('aria-pressed', String(!!junoState[key]));
+    if (sess.voice != null && sess.voice < sounds.omni.length) voiceSel.value = String(sess.voice);
+    if (sess.acidSound != null && sess.acidSound < sounds.acid.length) acidSoundSel.value = String(sess.acidSound);
+    if (sess.acidPattern != null && sess.acidPattern < acidPatterns.length) acidPatternSel.value = String(sess.acidPattern);
+    if (sess.rhythm) { rhythm.pattern = sess.rhythm; patternSel.value = sess.rhythm; }
+    fx.chord = !!sess.chordOn; fx.bass = !!sess.bassOn;
+    document.getElementById('chordToggle').setAttribute('aria-pressed', String(fx.chord));
+    document.getElementById('bassToggle').setAttribute('aria-pressed', String(fx.bass));
+    if (sess.omniChord) setChord(sess.omniChord.pc, sess.omniChord.quality, labelFor(sess.omniChord.pc, sess.omniChord.quality));
+    if (sess.junoChord) chordState.juno = makeChord(sess.junoChord.pc, sess.junoChord.quality, labelFor(sess.junoChord.pc, sess.junoChord.quality));
+    refreshMainFaders();
+    renderSeq();
+    renderReadout();
+  } catch (e) {}
+}
+
+/* Where songs live: in this browser always, and, where the page runs in
+   claude.ai with a signed-in viewer, in the viewer's own private library there
+   as well, which survives a cleared browser and follows them between devices.
+   Each song is one entry; a key starts with l: for this browser and d: for the
+   library. */
+const SONGS = 'chordtroller-web-songs-v1';
+const songStore = {
+  db: null, uid: null,
+  async connect() {
+    try {
+      if (!window.claude || !window.claude.use) return;
+      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+      if (!db || !user) return;
+      const id = await user.id();
+      if (id) { this.db = db; this.uid = id; }
+    } catch (e) {}
+  },
+  col() { return this.db.doc('data/users/' + this.uid + '/library').collection('songs'); },
+  local() { try { return JSON.parse(localStorage.getItem(SONGS) || '{}') || {}; } catch (e) { return {}; } },
+  writeLocal(all) { localStorage.setItem(SONGS, JSON.stringify(all)); },
+  async list() {
+    const out = [];
+    for (const [id, v] of Object.entries(this.local())) out.push({ key: 'l:' + id, name: v.name, savedAt: v.savedAt });
+    if (this.db) {
+      try {
+        const snap = await this.col().get();
+        for (const d of snap.docs) { const v = d.data(); out.push({ key: 'd:' + d.id, name: v.name, savedAt: v.savedAt }); }
+      } catch (e) {}
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name) || (b.savedAt || '').localeCompare(a.savedAt || ''));
+  },
+  async get(key) {
+    const id = key.slice(2);
+    if (key.startsWith('d:')) {
+      const d = await this.col().doc(id).get();
+      if (!d.exists) return null;
+      const v = d.data();
+      return { name: v.name, savedAt: v.savedAt, state: JSON.parse(v.state) };
+    }
+    return this.local()[id] || null;
+  },
+  /* Into the library if there is one, else (or if it refuses) this browser.
+     An existing key is overwritten where it is. */
+  async put(key, name, state) {
+    const savedAt = new Date().toISOString();
+    if ((key ? key.startsWith('d:') : !!this.db) && this.db) {
+      try {
+        const ref = key ? this.col().doc(key.slice(2)) : this.col().doc();
+        await ref.set({ name, savedAt, state: JSON.stringify(state) });
+        return 'd:' + ref.id;
+      } catch (e) {
+        if (e && (e.code === 'revoked' || e.code === 'not_granted')) this.db = null;
+        if (key) throw e;   // an online song that cannot be overwritten stays as it was
+      }
+    }
+    const all = this.local(), id = key && key.startsWith('l:') ? key.slice(2) : 's' + Date.now().toString(36);
+    all[id] = { name, savedAt, state };
+    this.writeLocal(all);
+    return 'l:' + id;
+  },
+  async remove(key) {
+    if (key.startsWith('d:')) { await this.col().doc(key.slice(2)).delete(); return; }
+    const all = this.local();
+    delete all[key.slice(2)];
+    this.writeLocal(all);
+  }
+};
+
+const songSel = document.getElementById('songSel');
+const songNameEl = document.getElementById('songName');
+const songMsgEl = document.getElementById('songMsg');
+const songLoadBtn = document.getElementById('songLoad'), songDeleteBtn = document.getElementById('songDelete');
+const songSaveBtn = document.getElementById('songSave');
+let songList = [];
+let currentSong = null;
+try { currentSong = localStorage.getItem(SONGS + '-current'); } catch (e) {}
+
+let songMsgTimer = 0;
+function songMsg(text) {
+  songMsgEl.textContent = text;
+  clearTimeout(songMsgTimer);
+  songMsgTimer = setTimeout(() => { songMsgEl.textContent = ''; }, 6000);
+}
+
+async function refreshSongs(select) {
+  songList = await songStore.list();
+  songSel.textContent = '';
+  if (!songList.length) {
+    const o = new Option('No songs yet', ''); o.disabled = true; songSel.add(o);
+  }
+  for (const s of songList) songSel.add(new Option(s.name, s.key));
+  const want = select || currentSong;
+  if (want && songList.some((s) => s.key === want)) songSel.value = want;
+  songLoadBtn.disabled = songDeleteBtn.disabled = !songList.length;
+  if (!songNameEl.value) {
+    const cur = songList.find((s) => s.key === currentSong);
+    if (cur) songNameEl.value = cur.name;
+  }
+}
+songSel.addEventListener('change', () => {
+  const s = songList.find((x) => x.key === songSel.value);
+  if (s) songNameEl.value = s.name;
+});
+
+/* SAVE keeps the groovebox under the name in the field. A name that is
+   already a song asks for a second tap before it is overwritten. */
+songSaveBtn.addEventListener('click', async () => {
+  const name = (songNameEl.value.trim() || 'Untitled').slice(0, 32);
+  const existing = songList.find((s) => s.name === name);
+  if (existing && !songSaveBtn.dataset.armed) { arm(songSaveBtn, true); songMsg('“' + name + '” exists: tap again to save over it'); return; }
+  arm(songSaveBtn, false);
+  clearTimeout(saveTimer);
+  try {
+    const key = await songStore.put(existing ? existing.key : null, name, snapshot());
+    currentSong = key;
+    try { localStorage.setItem(SONGS + '-current', key); } catch (e) {}
+    songNameEl.value = name;
+    await refreshSongs(key);
+    songMsg('Saved “' + name + '”' + (key.startsWith('l:') ? ' in this browser' : ''));
+  } catch (e) {
+    songMsg(e && e.code === 'quota_exceeded' ? 'The library is full: delete a song or use Export' : 'Could not save: ' + ((e && e.message) || 'storage is blocked'));
+  }
+});
+
+/* LOAD puts the chosen song in place and starts the page over with it: two
+   taps, since what is playing now is replaced. The sound starts again with
+   the next touch. */
+songLoadBtn.addEventListener('click', async () => {
+  const key = songSel.value;
+  if (!key) return;
+  if (!songLoadBtn.dataset.armed) { arm(songLoadBtn, true); songMsg('Loading replaces what is here now: tap again'); return; }
+  arm(songLoadBtn, false);
+  try {
+    const song = await songStore.get(key);
+    if (!song || !song.state) { songMsg('That song could not be read'); return; }
+    clearTimeout(saveTimer);
+    localStorage.setItem(STORE, JSON.stringify(song.state));
+    localStorage.setItem(SONGS + '-current', key);
+    location.reload();
+  } catch (e) {
+    songMsg('Could not load: ' + ((e && e.message) || 'storage is blocked'));
+  }
+});
+
+songDeleteBtn.addEventListener('click', async () => {
+  const key = songSel.value;
+  if (!key) return;
+  if (!songDeleteBtn.dataset.armed) { arm(songDeleteBtn, true); return; }
+  arm(songDeleteBtn, false);
+  const name = (songList.find((s) => s.key === key) || {}).name;
+  try {
+    await songStore.remove(key);
+    if (currentSong === key) currentSong = null;
+    await refreshSongs();
+    songMsg('Deleted “' + name + '”');
+  } catch (e) { songMsg('Could not delete: ' + ((e && e.message) || 'try again')); }
+});
+
+/* EXPORT hands the groovebox over as a .json file, IMPORT takes one back as a
+   song in the list, ready to load. */
+document.getElementById('songExport').addEventListener('click', async () => {
+  const name = (songNameEl.value.trim() || 'Untitled').slice(0, 32);
+  const data = JSON.stringify({ format: 'chordtroller-song', version: 1, name, savedAt: new Date().toISOString(), state: snapshot() });
+  const filename = (name.replace(/[^\w\- ]+/g, '').trim() || 'song') + '.json';
+  let downloads = null;
+  try { if (window.claude && window.claude.use) downloads = await window.claude.use('downloads'); } catch (e) {}
+  if (downloads) {
+    try { await downloads.save({ filename, data }); songMsg('Exported ' + filename); }
+    catch (e) { if (!e || e.code !== 'declined') songMsg('Could not export: ' + ((e && e.message) || 'unavailable')); }
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  songMsg('Exported ' + filename);
+});
+const songFileEl = document.getElementById('songFile');
+document.getElementById('songImport').addEventListener('click', () => songFileEl.click());
+songFileEl.addEventListener('change', async () => {
+  const file = songFileEl.files && songFileEl.files[0];
+  songFileEl.value = '';
+  if (!file) return;
+  try {
+    const song = JSON.parse(await file.text());
+    if (!song || song.format !== 'chordtroller-song' || !song.state || typeof song.state !== 'object') throw new Error('not a song file');
+    let name = String(song.name || file.name.replace(/\.json$/i, '')).slice(0, 28) || 'Imported';
+    if (songList.some((s) => s.name === name)) { let n = 2; while (songList.some((s) => s.name === name + ' ' + n)) n++; name += ' ' + n; }
+    const key = await songStore.put(null, name, song.state);
+    await refreshSongs(key);
+    songNameEl.value = name;
+    songMsg('Imported “' + name + '”: press Load to play it');
+  } catch (e) { songMsg('Could not import: ' + ((e && e.message) || 'not a song file')); }
+});
+
+refreshSongs();
+songStore.connect().then(() => { if (songStore.db) refreshSongs(); });
+
 // iOS still scrolls and zooms on touchmove unless it is cancelled outright.
 document.addEventListener('touchmove', (e) => {
   if (e.target.closest && e.target.closest('.ed-body')) return;   // the editor scrolls
@@ -5510,12 +5787,14 @@ document.addEventListener('touchmove', (e) => {
 }, { passive: false });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
-// Open on C major, the way the instrument wakes up, on the tab last used.
+// Open on C major, the way the instrument wakes up, on the tab last used —
+// or as the song left it.
 document.body.dataset.inst = 'omni';
 bpmOut.textContent = rhythm.bpm;
 metroBtn.setAttribute('aria-pressed', String(transport.metronome));
 setLayout(savedLayout);
 setChord(0, 'maj');
+if (savedSession) applySession(savedSession);
 let lastTab = 'drums';
 try { lastTab = localStorage.getItem(STORE + '-tab') || 'drums'; } catch (e) {}
 setTab(tabEls.some((t) => t.dataset.tab === lastTab) ? lastTab : 'drums');

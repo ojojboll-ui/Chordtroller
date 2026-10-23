@@ -257,6 +257,28 @@ VIOLIN.
 - A double tap puts the volume, the transpose or the filter back. **RESET MIX**
   puts every channel back, transpose included.
 
+## Songs
+
+The first row of the MIXER tab keeps songs. A song is everything the groovebox
+is at that moment: the sounds, the drum and 303 patterns, the three loops, the
+mixer, the tempo and metronome, the chord layout, the violin's settings, and
+which sound, genre and rhythm each instrument has selected.
+
+- **SAVE** keeps the groovebox under the name in the field. A name that is
+  already a song wants a second tap before it is saved over.
+- **LOAD** puts the song chosen in the menu in place and starts the page over
+  with it; it wants two taps, since what is there now is replaced. The sound
+  starts again with the next touch.
+- **DELETE** removes the chosen song, with two taps.
+- **EXPORT** hands the groovebox over as a `.json` file, and **IMPORT** takes
+  one back as a song in the list, ready to load — for moving songs between
+  devices or keeping them safe.
+
+Songs are kept in the browser. Opened in claude.ai by a signed-in viewer, the
+page keeps them in that viewer's own private library there instead, which
+survives a cleared browser and follows them between devices; nobody else, the
+page's owner included, can see it.
+
 ## Synth edit
 
 Every Omnichord sound is the same string voice with a different row from
