@@ -68,7 +68,7 @@ body {
 /* The right hand's surface runs the full height; the controls sit over the left.
    How wide it is depends on what it has to hold. */
 [data-inst="juno"] #app { --side: 33%; }
-[data-inst="acid"] #app { --side: 38%; }
+[data-inst="acid"] #app { --side: 35%; }
 [data-inst="drums"] #app { --side: 30%; }
 [data-inst="violin"] #app { --side: 36%; }
 [data-inst="mix"] #app { --side: 0px; }
@@ -255,6 +255,8 @@ body {
 .fb-note.tonic { background: var(--key-major); }
 .fb-note.down { transform: translateY(2px); box-shadow: 0 1px 0 var(--key-shadow); }
 .seg.vtoggles button { padding: 8px 8px; }
+#acidUnitSeg button { padding: 8px 7px; }
+.bar #acidScale { max-width: 80px; text-overflow: ellipsis; }
 .fb-note.drone { box-shadow: 0 3px 0 var(--key-shadow), inset 0 0 0 3px var(--led); }
 .fb-note.lit::after { content: ""; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--led); box-shadow: 0 0 6px var(--led); }
 .bowpad {
@@ -309,7 +311,7 @@ body {
   grid-row: 2;
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
   min-height: 0;
 }
@@ -906,6 +908,11 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
   [data-inst="acid"] #app { --side: 33%; }
   [data-inst="violin"] #app { --side: 32%; }
   .bar .metro { padding: 7px 6px; font-size: 10px; letter-spacing: .04em; gap: 5px; }
+  .bar #acidUnitSeg button { padding: 7px 4px; }
+  .bar #acidScale { max-width: 66px; }
+  .bar #acidSound { max-width: 56px; text-overflow: ellipsis; }
+  .bar #acidPatternSel { max-width: 52px; text-overflow: ellipsis; }
+  .bar #acidRandom, .bar #acidClear { padding: 7px 5px; }
   .bar .seg.vtoggles button { padding: 7px 5px; font-size: 10px; letter-spacing: .03em; }
   .row3 .fader { height: 30px; padding: 0 6px; }
   .bar .row3 { gap: 4px; }
@@ -1015,6 +1022,10 @@ button:focus-visible, select:focus-visible, .fader:focus-visible { outline: 2px 
         <button class="toggle" id="extToggle" type="button" aria-pressed="false"><span>Ext<span class="wide">ended</span></span></button>
       </div>
       <div class="fx acid-only">
+        <div class="seg" id="acidUnitSeg" role="group" aria-label="Which 303">
+          <button type="button" data-unit="0" aria-pressed="true" aria-label="303 A">A</button>
+          <button type="button" data-unit="1" aria-pressed="false" aria-label="303 B">B</button>
+        </div>
         <label class="sr" for="acidPatternSel">Pattern</label>
         <select id="acidPatternSel" class="sel"></select>
         <label class="sr" for="acidSound">Sound</label>
@@ -2757,10 +2768,10 @@ class OmniDSP {
     this.ensJ = new Ensemble(sr);
     this.delay = new TempoDelay(sr);
     this.jframe = [0, 0];
-    // The 303 and its delay.
-    this.acid = new AcidEngine(sr);
-    this.delayA = new TempoDelay(sr);
-    this.acidSet = { level: 1, dryGain: 1, wetGain: 0, pump: 0.55 };
+    // Two 303s, each with its own sequencer, delay and mixer channel.
+    this.au = ['acid', 'acid2'].map((ch) => ({ ch, eng: new AcidEngine(sr), delay: new TempoDelay(sr),
+      set: { level: 1, dryGain: 1, wetGain: 0, pump: 0.55 }, frame: [0, 0], last: null }));
+    this.acid = this.au[0].eng;
     this.aframe = [0, 0];
     // The drum machine: eight tracks of sixteen steps, 0 off, 1 on, 2 accent.
     this.kit = new PumpKit(sr);
@@ -2778,7 +2789,7 @@ class OmniDSP {
     this.liveHeld = false;   // a finger on the phrase plate wins over the loop
     // Transpose per mixer channel, in semitones. What is played and recorded
     // stays as pressed; only what sounds moves. The drums are retuned instead.
-    this.tr = { omni: 0, juno: 0, acid: 0, drums: 0, violin: 0 }; this.lastComp = null; this.drumTracks = null;
+    this.tr = { omni: 0, juno: 0, acid: 0, acid2: 0, drums: 0, violin: 0 }; this.lastComp = null; this.drumTracks = null;
     // The violin, and the loops of the Omni and the violin.
     this.violin = new StringEngine(sr); this.vframe = [0, 0]; this.vNote = 62; this.vDrone = null;
     this.tracks = { omni: new LoopTrack(), violin: new LoopTrack() };
@@ -2789,9 +2800,9 @@ class OmniDSP {
     this.genre = 0;
     // The mixer.
     this.mix = {};
-    for (const ch of ['omni', 'juno', 'acid', 'drums', 'violin'])
+    for (const ch of ['omni', 'juno', 'acid', 'acid2', 'drums', 'violin'])
       this.mix[ch] = { target: 1, gain: 1, mode: 0, svf: [new Svf(), new Svf()] };
-    this.lastAcid = null; this.lastJuno = null;
+    this.lastJuno = null;
     this.outbox = [];
   }
 
@@ -2831,10 +2842,10 @@ class OmniDSP {
   setTempo(bpm) {
     this.bpm = Math.min(220, Math.max(40, bpm));
     this.bps = this.bpm / 60 / this.sr;
-    this.acid.setTempo(this.bpm);
+    for (const u of this.au) u.eng.setTempo(this.bpm);
     this.juno.setTempo(this.bpm);
     // The delays are timed to the beat.
-    if (this.lastAcid) this.setAcid(this.lastAcid);
+    for (const u of this.au) if (u.last) this.setAcid(u.last);
     if (this.lastJuno) this.setJuno(this.lastJuno);
   }
 
@@ -2846,11 +2857,11 @@ class OmniDSP {
       this.beatPos = 0; this.lastSix = -1;
       this.loop.start = 0; this.loop.punch = {};
       for (const T of Object.values(this.tracks)) { T.start = 0; T.punch = {}; T.last = -1e-6; }
-      this.acid.running = true;
+      for (const u of this.au) u.eng.running = true;
       this.comp.setRunning(true);
       this.juno.external = true;
     } else {
-      this.acid.stop();
+      for (const u of this.au) u.eng.stop();
       this.comp.setRunning(false);
       this.juno.external = false;
       const L = this.loop;
@@ -2871,20 +2882,21 @@ class OmniDSP {
   }
 
   setAcid(m) {
-    this.lastAcid = m;
-    const a = this.acid, v = a.voice, set = this.acidSet;
+    const u = this.au[m.unit | 0];
+    u.last = m;
+    const a = u.eng, v = a.voice, set = u.set;
     const sw = JunoEngine.sweep(m.cutoff, m.resonance);
     v.cutoff = sw.cutoff; v.res = sw.res;
     v.envMod = m.envMod; v.setDecay(m.decay); v.square = m.square;
     v.setGlide([0.03, 0.06, 0.14, 0.30][m.glide] || 0.06);
-    a.setScale(m.scaleMask); a.key = m.key + this.tr.acid; a.octave = m.octave;
+    a.setScale(m.scaleMask); a.key = m.key + this.tr[u.ch]; a.octave = m.octave;
     // Delay: a real dry/wet with equal power, always fed, so turning the mix
     // up brings in echoes of what has already played. The echo knob is how long
     // the repeats ring, from a fifth of a second to twelve, at any tempo.
-    this.delayA.setTiming(this.bpm, m.division);
+    u.delay.setTiming(this.bpm, m.division);
     const echoSeconds = 0.2 * Math.pow(60, m.echo);
-    const gain = m.echo <= 0 ? 0 : Math.pow(10, -3 * (this.delayA.target / this.sr) / echoSeconds);
-    this.delayA.setAmount(1, gain);
+    const gain = m.echo <= 0 ? 0 : Math.pow(10, -3 * (u.delay.target / this.sr) / echoSeconds);
+    u.delay.setAmount(1, gain);
     const angle = m.mix * Math.PI / 2;
     set.dryGain = Math.cos(angle); set.wetGain = Math.sin(angle);
     set.level = m.level; set.pump = m.pump;
@@ -2924,7 +2936,7 @@ class OmniDSP {
       this.violin.setNote(this.vNote + st);
       if (this.vDrone != null) this.violin.setDrone(true, this.vDrone + st);
     }
-    else if (ch === 'acid') { if (this.lastAcid) this.setAcid(this.lastAcid); }
+    else if (ch === 'acid' || ch === 'acid2') { const u = this.au[ch === 'acid2' ? 1 : 0]; if (u.last) this.setAcid(u.last); }
     else if (ch === 'drums') this.setDrums();
     else if (ch === 'juno' && this.lastChord) {
       const c = this.lastChord;
@@ -3150,14 +3162,14 @@ class OmniDSP {
         if (t === 0) this.sinceKick = 0;
       }
     }
-    if (this.acid.running) this.acid.stepAt(six % this.acid.length);
+    for (const u of this.au) if (u.eng.running) u.eng.stepAt(six % u.eng.length);
     if (this.metroOn && six % 4 === 0) {
       this.metroEnv = 1; this.metroPhase = 0;
       this.metroInc = (s16 === 0 ? 1760 : 1320) / this.sr;
     }
     this.loopStep(six);
     for (const name in this.tracks) this.trackStep(name, six);
-    this.post({ type: 'tick', six, acid: six % this.acid.length, drum: s16, loop: this.loopPos(six),
+    this.post({ type: 'tick', six, acid: six % this.acid.length, acid2: six % this.au[1].eng.length, drum: s16, loop: this.loopPos(six),
                 tracks: { omni: this.trackPos('omni', six), violin: this.trackPos('violin', six) } });
   }
 
@@ -3218,8 +3230,8 @@ class OmniDSP {
     else if (m.type === 'mixer') this.setMixer(m);
     else if (m.type === 'metronome') this.metroOn = !!m.on;
     else if (m.type === 'acidParams') this.setAcid(m);
-    else if (m.type === 'acidPattern') { this.acid.pattern = m.steps; this.acid.length = m.length; this.acid.playhead %= m.length; }
-    else if (m.type === 'acidAudition') this.acid.audition(m.degree, m.accent);
+    else if (m.type === 'acidPattern') { const a = this.au[m.unit | 0].eng; a.pattern = m.steps; a.length = m.length; a.playhead %= m.length; }
+    else if (m.type === 'acidAudition') this.au[m.unit | 0].eng.audition(m.degree, m.accent);
     else if (m.type === 'drumPattern') this.drumSteps = m.steps;
     else if (m.type === 'drumParams') { this.drumTracks = m.tracks; this.setDrums(); }
     else if (m.type === 'drumHit') {
@@ -3292,7 +3304,7 @@ class OmniDSP {
 
   process(L, R, n) {
     const q = this.queue, fr = this.frame, jf = this.jframe, af = this.aframe, df = this.dframe;
-    const mix = this.mix, set = this.acidSet;
+    const mix = this.mix;
     const duckLen = this.sr * 60 / this.bpm * 0.5, vf = this.vframe;
     if (this.playing) this.dispatchTracks();
     this.violin.begin();
@@ -3330,12 +3342,17 @@ class OmniDSP {
       const d = Math.min(1, this.sinceKick / duckLen);
       const pump = (1 - d) * (1 - d);
       if (this.sinceKick < (1 << 30)) this.sinceKick++;
-      const bass = this.acid.process() * 0.8 * set.level * (1 - set.pump * pump);
-      af[0] = bass; af[1] = bass;
-      this.delayA.process(af);
-      af[0] = bass * set.dryGain + (af[0] - bass) * set.wetGain;
-      af[1] = bass * set.dryGain + (af[1] - bass) * set.wetGain;
-      this.channel(mix.acid, af);
+      af[0] = af[1] = 0;
+      for (const u of this.au) {
+        const set = u.set, uf = u.frame;
+        const bass = u.eng.process() * 0.8 * set.level * (1 - set.pump * pump);
+        uf[0] = bass; uf[1] = bass;
+        u.delay.process(uf);
+        uf[0] = bass * set.dryGain + (uf[0] - bass) * set.wetGain;
+        uf[1] = bass * set.dryGain + (uf[1] - bass) * set.wetGain;
+        this.channel(mix[u.ch], uf);
+        af[0] += uf[0]; af[1] += uf[1];
+      }
       // The drums, dry.
       this.kit.process(df);
       df[0] *= 0.4; df[1] *= 0.4;
@@ -3626,7 +3643,8 @@ function onTick(m) {
   }
   if (m.six % 4 === 0) showBeat(m.six / 4);
   if (m.free) return;
-  showPlayhead(m.acid); showDrumHead(m.drum); showLoopPos(m.loop);
+  acidHeads[0] = m.acid; acidHeads[1] = m.acid2;
+  showPlayhead(acidHeads[acidUnit]); showDrumHead(m.drum); showLoopPos(m.loop);
   if (m.tracks) for (const k in m.tracks) recorders[k].showPos(m.tracks[k]);
 }
 
@@ -3797,13 +3815,20 @@ const STORE = 'chordtroller-web-sounds-v1';
 const ACID_SCALES = [
   { name: 'Minor', mask: [0, 2, 3, 5, 7, 8, 10] },
   { name: 'Phrygian', mask: [0, 1, 4, 5, 7, 8, 10] },
-  { name: 'Minor pent', mask: [0, 3, 5, 7, 10] },
+  { name: 'Min pent', mask: [0, 3, 5, 7, 10] },
   { name: 'Blues', mask: [0, 3, 5, 6, 7, 10] },
   { name: 'Major', mask: [0, 2, 4, 5, 7, 9, 11] },
   { name: 'Chromatic', mask: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }
 ].map((sc) => ({ name: sc.name, tones: sc.mask, mask: sc.mask.reduce((m, pc) => m | (1 << pc), 0) }));
 
-const acidState = { key: 4, scale: 0, octave: 0, pump: 0.55 };
+/* Two 303s. Each has its own key, scale, octave, pump, and pattern and sound
+   from the shared lists; the tab shows the one chosen with A and B. */
+const acidUnits = [
+  { key: 4, scale: 0, octave: 0, pump: 0.55, pattern: 0, sound: 0 },
+  { key: 4, scale: 0, octave: 1, pump: 0.55, pattern: 2, sound: 1 }
+];
+let acidUnit = 0;
+let acidState = acidUnits[0];
 
 /* A pattern is sixteen steps of scale degrees. ACID is the bass line from Rise
    of the Arpeggiator's ACID song, written as degrees of the minor scale. */
@@ -3815,7 +3840,13 @@ const FACTORY_PATTERNS = [
     acidNote(0), REST(), acidNote(7, true), acidNote(4),
     acidNote(0), acidNote(0, false, true), acidNote(7), REST(),
     acidNote(0, true), acidNote(4), acidNote(7, false, true), acidNote(0) ] },
-  { name: 'EMPTY', length: 16, steps: Array.from({ length: 16 }, REST) }
+  { name: 'EMPTY', length: 16, steps: Array.from({ length: 16 }, REST) },
+  // An answer to ACID for the second 303, an octave up: off the beat, round the fifth.
+  { name: 'ACID 2', length: 16, steps: [
+    REST(), REST(), acidNote(4, true), acidNote(3, false, true),
+    acidNote(2), REST(), acidNote(4), REST(),
+    REST(), acidNote(7, true), acidNote(6, false, true), acidNote(4),
+    REST(), acidNote(2), acidNote(4, false, true), acidNote(0) ] }
 ];
 const acidPatterns = clone(FACTORY_PATTERNS);
 
@@ -3836,7 +3867,7 @@ const DRUM_FACTORY = [
 ];
 const drumState = { pattern: 0, patterns: clone(DRUM_FACTORY), sel: 0, params: PumpKit.defaults() };
 
-const MIX_CHANNELS = [['drums', 'Drums'], ['acid', '303'], ['juno', 'Juno'], ['omni', 'Omnichord'], ['violin', 'Violin']];
+const MIX_CHANNELS = [['drums', 'Drums'], ['acid', '303 A'], ['acid2', '303 B'], ['juno', 'Juno'], ['omni', 'Omnichord'], ['violin', 'Violin']];
 const mixState = {};
 for (const [ch] of MIX_CHANNELS) mixState[ch] = { volume: 0.8, mute: false, filter: 0, transpose: 0 };
 
@@ -3858,7 +3889,9 @@ try {
       });
     }
     Object.assign(fxState, saved.fx || {});
-    Object.assign(acidState, saved.acidState || {});
+    Object.assign(acidUnits[0], saved.acidState || {});
+    if (saved.acidUnits) saved.acidUnits.forEach((u, i) => { if (acidUnits[i]) Object.assign(acidUnits[i], u); });
+    if (saved.acidUnit) acidUnit = saved.acidUnit === 1 ? 1 : 0;
     if (saved.drums) {
       Object.assign(drumState, saved.drums);
       DRUM_FACTORY.forEach((f, i) => { if (drumState.patterns[i]) drumState.patterns[i].name = f.name; });
@@ -3871,9 +3904,10 @@ try {
     if (saved.session) savedSession = saved.session;
     if (saved.violin) Object.assign(violinState, saved.violin, { note: null });
     if (saved.tracks) for (const k in tracksUI) if (saved.tracks[k]) Object.assign(tracksUI[k], saved.tracks[k]);
+    // The user's patterns follow the factory ones, however many of those there are now.
     (saved.patterns || []).forEach((v, i) => {
-      if (acidPatterns[i]) Object.assign(acidPatterns[i], v, { name: FACTORY_PATTERNS[i].name });
-      else if (v && v.user) acidPatterns.push(v);
+      if (v && v.user) acidPatterns.push(v);
+      else if (acidPatterns[i] && !acidPatterns[i].user) Object.assign(acidPatterns[i], v, { name: FACTORY_PATTERNS[i].name });
     });
   }
 } catch (e) {}
@@ -3883,12 +3917,12 @@ let saveTimer = 0;
    tempo, the layout, and which sound, genre and rhythm each instrument has. */
 function snapshot() {
   return { omni: sounds.omni, juno: sounds.juno, acid: sounds.acid, fx: fxState,
-           acidState, patterns: acidPatterns, drums: drumState,
+           acidState: acidUnits[0], acidUnits, acidUnit, patterns: acidPatterns, drums: drumState,
            mix: mixState, loop: loopUI, bpm: rhythm.bpm,
            metronome: transport.metronome,
            layout: layoutSel.value, violin: violinState, tracks: tracksUI,
            session: {
-             junoState, voice: +voiceSel.value, acidSound: +acidSoundSel.value, acidPattern: +acidPatternSel.value,
+             junoState, voice: +voiceSel.value, acidSound: acidUnits[0].sound, acidPattern: acidUnits[0].pattern,
              rhythm: rhythm.pattern, chordOn: fx.chord, bassOn: fx.bass,
              omniChord: { pc: chordState.omni.pc, quality: chordState.omni.quality },
              junoChord: { pc: chordState.juno.pc, quality: chordState.juno.quality }
@@ -4582,15 +4616,53 @@ function currentPattern() { return acidPatterns[+acidPatternSel.value] || acidPa
 function acidSound() { return sounds.acid[+acidSoundSel.value] || sounds.acid[0]; }
 const scaleNotes = () => ACID_SCALES[acidState.scale].tones.length;
 
+/* The menus belong to the 303 in front; both 303s are sent every time, so an
+   edit to a sound or pattern they share reaches the one not shown as well. */
+function readAcidMenus() {
+  acidState.sound = +acidSoundSel.value;
+  acidState.pattern = +acidPatternSel.value;
+  for (const u of acidUnits) {
+    if (!(u.sound < sounds.acid.length)) u.sound = 0;
+    if (!(u.pattern < acidPatterns.length)) u.pattern = 0;
+  }
+}
 function sendAcidParams() {
-  const snd = acidSound();
-  send({ type: 'acidParams', ...snd, scaleMask: ACID_SCALES[acidState.scale].mask,
-         key: acidState.key, octave: acidState.octave, pump: acidState.pump });
+  readAcidMenus();
+  acidUnits.forEach((u, unit) => {
+    const snd = sounds.acid[u.sound] || sounds.acid[0];
+    send({ type: 'acidParams', unit, ...snd, scaleMask: ACID_SCALES[u.scale].mask,
+           key: u.key, octave: u.octave, pump: u.pump });
+  });
 }
 function sendAcidPattern() {
-  const pat = currentPattern();
-  send({ type: 'acidPattern', steps: clone(pat.steps), length: pat.length });
+  readAcidMenus();
+  acidUnits.forEach((u, unit) => {
+    const pat = acidPatterns[u.pattern] || acidPatterns[0];
+    send({ type: 'acidPattern', unit, steps: clone(pat.steps), length: pat.length });
+  });
 }
+
+/* A and B: the tab turns to the other 303; both keep playing. */
+const acidHeads = [-1, -1];
+const acidUnitBtns = [...document.querySelectorAll('#acidUnitSeg button')];
+function showAcidUnit() {
+  acidState = acidUnits[acidUnit];
+  for (const b of acidUnitBtns) b.setAttribute('aria-pressed', String(+b.dataset.unit === acidUnit));
+  if (acidState.sound < sounds.acid.length) acidSoundSel.value = String(acidState.sound);
+  if (acidState.pattern < acidPatterns.length) acidPatternSel.value = String(acidState.pattern);
+  syncAcidMenus();
+  buildSeq();
+  refreshMainFaders();
+  renderReadout();
+  showPlayhead(acidHeads[acidUnit]);
+  if (editorEl && !editorEl.hidden && inst === 'acid') renderEditor();
+}
+for (const b of acidUnitBtns) b.addEventListener('click', () => {
+  readAcidMenus();
+  acidUnit = +b.dataset.unit;
+  showAcidUnit();
+  save();
+});
 
 
 const acidScaleSel = document.getElementById('acidScale');
@@ -4603,8 +4675,8 @@ function syncAcidMenus() {
 }
 acidScaleSel.addEventListener('change', () => { acidState.scale = +acidScaleSel.value; sendAcidParams(); buildSeq(); renderReadout(); save(); });
 acidKeySel.addEventListener('change', () => { acidState.key = +acidKeySel.value; sendAcidParams(); renderSeq(); renderReadout(); save(); });
-acidSoundSel.addEventListener('change', () => { sendAcidParams(); refreshMainFaders(); });
-acidPatternSel.addEventListener('change', () => { sendAcidPattern(); renderSeq(); renderReadout(); });
+acidSoundSel.addEventListener('change', () => { sendAcidParams(); refreshMainFaders(); save(); });
+acidPatternSel.addEventListener('change', () => { sendAcidPattern(); renderSeq(); renderReadout(); save(); });
 
 /* A new line, made up the way Chordtroller's 303 does it: it leans on the root
    and the octave, rests often enough to breathe, slides only into notes, and
@@ -4746,7 +4818,7 @@ seqEl.addEventListener('pointerdown', (e) => {
   else if (role === 'acc') st.accent = !st.accent;
   else if (role === 'sld') st.slide = !st.slide;
   sendAcidPattern();
-  if (role !== 'num' && !st.rest) send({ type: 'acidAudition', degree: st.degree, accent: st.accent });
+  if (role !== 'num' && !st.rest) send({ type: 'acidAudition', unit: acidUnit, degree: st.degree, accent: st.accent });
   renderSeq();
   renderReadout();
   save();
@@ -4807,8 +4879,10 @@ function patternGroup() {
     del.addEventListener('click', () => {
       if (!del.dataset.armed) { arm(del, true); return; }
       arm(del, false);
-      acidPatterns.splice(+acidPatternSel.value, 1);
-      acidPatternSel.value = '0';
+      const gone = +acidPatternSel.value;
+      acidPatterns.splice(gone, 1);
+      for (const u of acidUnits) u.pattern = u.pattern === gone ? 0 : u.pattern > gone ? u.pattern - 1 : u.pattern;
+      acidPatternSel.value = String(acidState.pattern);
       rebuildSoundMenus(); sendAcidPattern(); renderSeq(); renderReadout(); save(); renderEditor();
     });
     row.appendChild(del);
@@ -5567,8 +5641,8 @@ function applySession(sess) {
     for (const [id, key] of [['junoBassToggle', 'bass'], ['extToggle', 'ext'], ['holdToggle', 'hold']])
       document.getElementById(id).setAttribute('aria-pressed', String(!!junoState[key]));
     if (sess.voice != null && sess.voice < sounds.omni.length) voiceSel.value = String(sess.voice);
-    if (sess.acidSound != null && sess.acidSound < sounds.acid.length) acidSoundSel.value = String(sess.acidSound);
-    if (sess.acidPattern != null && sess.acidPattern < acidPatterns.length) acidPatternSel.value = String(sess.acidPattern);
+    if (sess.acidSound != null && sess.acidSound < sounds.acid.length) acidUnits[0].sound = sess.acidSound;
+    if (sess.acidPattern != null && sess.acidPattern < acidPatterns.length) acidUnits[0].pattern = sess.acidPattern;
     if (sess.rhythm) { rhythm.pattern = sess.rhythm; patternSel.value = sess.rhythm; }
     fx.chord = !!sess.chordOn; fx.bass = !!sess.bassOn;
     document.getElementById('chordToggle').setAttribute('aria-pressed', String(fx.chord));
@@ -5669,7 +5743,7 @@ async function refreshSongs(select) {
   songList = await songStore.list();
   songSel.textContent = '';
   if (!songList.length) {
-    const o = new Option('No songs yet', ''); o.disabled = true; songSel.add(o);
+    const o = new Option('No songs yet', '', true, true); o.disabled = true; songSel.add(o);
   }
   for (const s of songList) songSel.add(new Option(s.name, s.key));
   const want = select || currentSong;
@@ -5795,6 +5869,7 @@ metroBtn.setAttribute('aria-pressed', String(transport.metronome));
 setLayout(savedLayout);
 setChord(0, 'maj');
 if (savedSession) applySession(savedSession);
+showAcidUnit();
 let lastTab = 'drums';
 try { lastTab = localStorage.getItem(STORE + '-tab') || 'drums'; } catch (e) {}
 setTab(tabEls.some((t) => t.dataset.tab === lastTab) ? lastTab : 'drums');

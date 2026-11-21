@@ -55,8 +55,15 @@ tuned like the game's ACID song, with an eight-track step sequencer.
 
 ## 303
 
-The 303 tab is Chordtroller's 303, with the sequencer and the voice from
-`AcidEngine.h` and `AcidVoice.h`. It plays while PLAY is on.
+The 303 tab is two of Chordtroller's 303s, with the sequencer and the voice from
+`AcidEngine.h` and `AcidVoice.h`. Both play while PLAY is on.
+
+- **A** and **B** at the start of the second row turn the tab to one 303 or
+  the other; both keep playing. Each has its own key, scale, octave and pump,
+  its own delay and its own mixer channel, and picks its pattern and sound from
+  the shared lists. B starts an octave up on the SQUARE sound with ACID 2, a
+  line that answers ACID. Two 303s on the same pattern or sound share it: an
+  edit to it is heard on both.
 
 - **The grid** on the left is the pattern: sixteen steps across and the scale's
   notes from the root up to the octave. Tap a cell to set the note, tap the same
@@ -237,8 +244,8 @@ bow stops on it.
 
 ## Mixer
 
-The MIXER tab has a channel per instrument: DRUMS, 303, JUNO, OMNICHORD and
-VIOLIN.
+The MIXER tab has a channel per instrument: DRUMS, 303 A, 303 B, JUNO,
+OMNICHORD and VIOLIN.
 
 - **MUTE** silences the channel, and its tab is struck through so it shows from
   the other tabs too.
